@@ -38,6 +38,15 @@
       </section>
 
       <section class="block">
+        <div class="block-head">
+          <h2>Obstacles</h2>
+          <button id="clear-obstacles-btn" class="link-btn" type="button" hidden>Clear</button>
+        </div>
+        <p id="obstacle-hint" class="hint">Mark impassable ground on the map to recompute routes around it.</p>
+        <button id="report-obstacle-btn" class="obstacle-btn" type="button" aria-pressed="false">Report new obstacle</button>
+      </section>
+
+      <section class="block">
         <h2>Map layers</h2>
         <label class="check">
           <input type="checkbox" id="toggle-risk-layer" checked>
@@ -49,7 +58,7 @@
           <span>Slope</span>
         </label>
         <div id="data-layers-wrap" class="data-layers" hidden>
-          <h3 class="subhead">Data layers in route cost</h3>
+          <h3 class="subhead">Data layers</h3>
           <div id="data-layers-list" class="data-layers-list"></div>
         </div>
       </section>
