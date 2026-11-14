@@ -163,8 +163,9 @@ def main():
         "risk_model": {
             "slope_limit_deg": c.SLOPE_LIMIT_DEG,
             "description": (
-                f"Estimated risk = slope / {c.SLOPE_LIMIT_DEG} deg x 100. Cells at or above {c.SLOPE_LIMIT_DEG} deg are impassable "
-                f"(an assumption for suited walking). Slope is taken from the 1 m elevation model after {SMOOTH_SIGMA_M} m "
+                f"Estimated risk = slope / {c.SLOPE_LIMIT_DEG} deg x 100. Cells at or above {c.SLOPE_LIMIT_DEG} deg are impassable: "
+                f"NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). "
+                f"Slope is taken from the 1 m elevation model after {SMOOTH_SIGMA_M} m "
                 f"Gaussian smoothing; each {f} m cell keeps its steepest value. Rocks and loose sand are not in the model yet."
             ),
         },

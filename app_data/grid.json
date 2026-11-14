@@ -28,8 +28,8 @@
     "conditions": "conditions.json"
   },
   "risk_model": {
-    "slope_limit_deg": 30,
-    "description": "Estimated risk = slope / 30 deg x 100. Cells at or above 30 deg are impassable (an assumption for suited walking). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet."
+    "slope_limit_deg": 20,
+    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet."
   },
   "sources": [
     {
@@ -60,5 +60,5 @@
       "cannot_see": "Only where the rover stopped; the ground between waypoints is not recorded."
     }
   ],
-  "generated": "2026-11-14T16:01:01+00:00"
+  "generated": "2026-11-14T16:18:23+00:00"
 }
