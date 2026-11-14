@@ -1,8 +1,9 @@
 // plan/plan.js — planning screen (work stream B).
-import { loadGrid, loadJson, fileUrl, mapBounds, xyToLatLng } from '../shared/data.js';
+import { loadGrid, loadJson, fileUrl, mapBounds, xyToLatLng, loadLayers, combineRisk } from '../shared/data.js';
 import { buildRoute, saveRoute, totalEvaS } from '../shared/route.js';
 import { ASSUMPTIONS, ASSUMPTION_NOTES, formatDuration } from '../shared/walk-model.js';
 import { findMultiStopPath } from './astar.js';
+import { createTerrain3D } from './terrain3d.js';
 
 const statusEl = document.getElementById('status');
 const demoBadgeEl = document.getElementById('demo-badge');
@@ -10,7 +11,18 @@ const habitatNameEl = document.getElementById('habitat-name');
 const stopsListEl = document.getElementById('stops-list');
 const clearStopsBtn = document.getElementById('clear-stops-btn');
 const toggleRiskLayerEl = document.getElementById('toggle-risk-layer');
+const riskMapNoteEl = document.getElementById('risk-map-note');
 const toggleSlopeLayerEl = document.getElementById('toggle-slope-layer');
+const dataLayersWrapEl = document.getElementById('data-layers-wrap');
+const dataLayersListEl = document.getElementById('data-layers-list');
+const map2dEl = document.getElementById('map');
+const map3dEl = document.getElementById('map3d');
+const btnView2dEl = document.getElementById('btn-view-2d');
+const btnView3dEl = document.getElementById('btn-view-3d');
+const controls3dEl = document.getElementById('controls-3d');
+const zScaleSliderEl = document.getElementById('z-scale-slider');
+const zScaleValEl = document.getElementById('z-scale-val');
+const btnReset3dEl = document.getElementById('btn-reset-3d');
 const routeAlertEl = document.getElementById('route-alert');
 const routesContainerEl = document.getElementById('routes-container');
 const routeRationaleEl = document.getElementById('route-rationale');
@@ -23,6 +35,8 @@ const conditionsMockTagEl = document.getElementById('conditions-mock-tag');
 const conditionsNoteEl = document.getElementById('conditions-note');
 const conditionsListEl = document.getElementById('conditions-list');
 const sourcesListEl = document.getElementById('sources-list');
+const layersLimitsSectionEl = document.getElementById('layers-limits-section');
+const layersLimitsListEl = document.getElementById('layers-limits-list');
 const riskModelBoxEl = document.getElementById('risk-model-box');
 const assumptionsListEl = document.getElementById('assumptions-list');
 
@@ -39,6 +53,10 @@ const ROUTE_ORDER = ['low_risk', 'shortest'];
 const PROFILE_HINT = 'Hover the chart to see the point on the map.';
 
 let grid = null;
+let dataLayers = [];
+let enabledLayerIds = [];
+const dataLayerOverlays = new Map();
+
 let habitat = null;
 let allStops = [];
 // Ordered array of selected stop IDs (selection order = visiting order)
@@ -46,9 +64,13 @@ let selectedStopIds = [];
 
 // Currently computed routes and selected route kind ('low_risk' | 'shortest')
 let currentRoutes = { shortest: null, low_risk: null };
+let currentCells = { shortest: null, low_risk: null };
 let selectedRouteKind = 'low_risk';
 
 let map = null;
+let riskOverlay = null;
+let terrain3d = null;
+let viewMode = '2d'; // '2d' | '3d'
 let routeLayerGroup = null;
 let hoverMapMarker = null;
 const stopMarkers = new Map();
@@ -64,6 +86,13 @@ function h(tag, className = '', text = '') {
 /** "−4,068 m" style text: thousands separator and a real minus sign. */
 function formatMetres(value) {
   return `${Math.round(value).toLocaleString('en-US').replace('-', '−')} m`;
+}
+
+/** Format signed weight, e.g. -20 -> "−20", +15 -> "+15". */
+function formatSignedWeight(w) {
+  if (w < 0) return `−${Math.abs(w)}`;
+  if (w > 0) return `+${w}`;
+  return '0';
 }
 
 /** Round tick values (1, 2, 5 × 10ⁿ steps) inside [min, max]. */
@@ -87,6 +116,21 @@ function setStatus(text, isError = false) {
   statusEl.classList.toggle('is-error', isError);
 }
 
+function setViewMode(mode) {
+  viewMode = mode;
+  const is3d = mode === '3d';
+  btnView2dEl.setAttribute('aria-pressed', String(!is3d));
+  btnView3dEl.setAttribute('aria-pressed', String(is3d));
+  map2dEl.hidden = is3d;
+  controls3dEl.hidden = !is3d;
+  if (terrain3d) {
+    terrain3d.setVisible(is3d);
+  }
+  if (!is3d && map) {
+    map.invalidateSize();
+  }
+}
+
 function getSelectedStops() {
   return selectedStopIds.map((id) => allStops.find((s) => s.id === id)).filter(Boolean);
 }
@@ -106,6 +150,7 @@ function selectRouteKind(kind) {
   if (!currentRoutes[kind]) return;
   selectedRouteKind = kind;
   drawRouteLines();
+  if (terrain3d) terrain3d.setRoutes(currentRoutes, selectedRouteKind);
   renderRouteCards();
   renderElevationProfile();
 }
@@ -155,6 +200,97 @@ function renderStopsUI() {
   }
 
   clearStopsBtn.hidden = selectedStopIds.length === 0;
+  if (terrain3d) terrain3d.setSelectedStops(selectedStopIds);
+}
+
+/**
+ * Update the note & opacity on "Estimated risk" when any data layer is switched off,
+ * since risk.png represents all layers switched on.
+ */
+function updateRiskLayerNote() {
+  const anyOff = dataLayers.length > 0 && enabledLayerIds.length < dataLayers.length;
+  riskMapNoteEl.hidden = !anyOff;
+  if (riskOverlay) {
+    riskOverlay.setOpacity(anyOff ? 0.42 : 0.7);
+  }
+}
+
+/**
+ * Build checkboxes for every data layer in grid.meta.layers (independent of layer count or names).
+ */
+function setupDataLayersUI(bounds) {
+  dataLayersListEl.replaceChildren();
+  dataLayerOverlays.clear();
+
+  if (!dataLayers.length) {
+    dataLayersWrapEl.hidden = true;
+    riskMapNoteEl.hidden = true;
+    return;
+  }
+
+  dataLayersWrapEl.hidden = false;
+  enabledLayerIds = dataLayers.map((l) => l.id);
+
+  for (const layer of dataLayers) {
+    if (layer.img) {
+      const ov = L.imageOverlay(grid.base + layer.img, bounds, { opacity: 0.85 });
+      ov.addTo(map);
+      dataLayerOverlays.set(layer.id, ov);
+    }
+
+    const item = h('div', 'data-layer-item');
+    const label = h('label', 'data-layer-check');
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = true;
+    input.dataset.layerId = layer.id;
+
+    const body = h('span', 'data-layer-body');
+    body.appendChild(h('span', 'data-layer-title', layer.label));
+
+    const effectParts = [];
+    if (layer.effect) effectParts.push(layer.effect);
+    if (layer.weight != null) effectParts.push(`${formatSignedWeight(layer.weight)} risk points · assumption`);
+    if (effectParts.length) {
+      body.appendChild(h('span', 'data-layer-effect', effectParts.join(' · ')));
+    }
+
+    label.append(input, body);
+    item.appendChild(label);
+
+    if (layer.description || layer.cannot_see) {
+      const details = h('details', 'data-layer-details');
+      details.appendChild(h('summary', '', 'What it shows & limits'));
+      if (layer.description) {
+        details.appendChild(h('p', '', layer.description));
+      }
+      if (layer.cannot_see) {
+        details.appendChild(h('p', 'data-layer-limit', `Cannot show: ${layer.cannot_see}`));
+      }
+      item.appendChild(details);
+    }
+
+    input.addEventListener('change', () => {
+      if (input.checked) {
+        if (!enabledLayerIds.includes(layer.id)) enabledLayerIds.push(layer.id);
+        const ov = dataLayerOverlays.get(layer.id);
+        if (ov) ov.addTo(map);
+      } else {
+        enabledLayerIds = enabledLayerIds.filter((id) => id !== layer.id);
+        const ov = dataLayerOverlays.get(layer.id);
+        if (ov) ov.remove();
+      }
+
+      updateRiskLayerNote();
+      grid.risk = combineRisk(grid, enabledLayerIds);
+      recomputeRoutes();
+    });
+
+    dataLayersListEl.appendChild(item);
+  }
+
+  updateRiskLayerNote();
 }
 
 /**
@@ -223,10 +359,21 @@ function drawRouteLines() {
   }
 }
 
-/** Rows of the comparison, in display order. Every number comes from buildRoute() totals. */
-function routeRows(route) {
+/** Percentage of route cells where a given data layer has score > 0. */
+function routeLayerSharePct(cells, layerId) {
+  const scores = grid.layerScores && grid.layerScores[layerId];
+  if (!scores || !cells || !cells.length) return 0;
+  let hits = 0;
+  for (let i = 0; i < cells.length; i++) {
+    if (scores[cells[i]] > 0) hits++;
+  }
+  return Math.round((hits / cells.length) * 100);
+}
+
+/** Rows of the comparison, in display order. Every number comes from buildRoute() totals + active layers. */
+function routeRows(route, cells) {
   const t = route.totals;
-  return [
+  const rows = [
     { label: 'Total Marswalk time', value: formatDuration(totalEvaS(route)), className: 'route-total' },
     { label: 'Distance, one way', value: formatMetres(t.distance_m) },
     { label: 'Walk out', value: formatDuration(t.walk_s) },
@@ -241,6 +388,19 @@ function routeRows(route) {
     },
     { label: 'Cells without data', value: String(t.nodata_cells) },
   ];
+
+  // Add one row per currently enabled data layer (e.g. share of route cells on that layer)
+  const activeLayers = dataLayers.filter((l) => enabledLayerIds.includes(l.id));
+  for (const layer of activeLayers) {
+    const pct = routeLayerSharePct(cells, layer.id);
+    rows.push({
+      label: layer.label,
+      title: `${layer.label} (${formatSignedWeight(layer.weight)} risk points · assumption)`,
+      value: `${pct} %`,
+    });
+  }
+
+  return rows;
 }
 
 function renderRouteCards() {
@@ -264,7 +424,7 @@ function renderRouteCards() {
 
   startWalkBtn.disabled = false;
 
-  const labelRows = routeRows(low_risk);
+  const labelRows = routeRows(low_risk, currentCells.low_risk);
   const compare = h('div', 'compare');
   compare.setAttribute('role', 'group');
   compare.setAttribute('aria-label', 'Route to walk');
@@ -282,6 +442,7 @@ function renderRouteCards() {
 
   ROUTE_ORDER.forEach((kind, i) => {
     const route = currentRoutes[kind];
+    const cells = currentCells[kind];
     const other = currentRoutes[ROUTE_ORDER[1 - i]];
     const evaS = totalEvaS(route);
     const overLimit = evaS > ASSUMPTIONS.EVA_LIMIT_S;
@@ -300,7 +461,7 @@ function renderRouteCards() {
     card.appendChild(head);
 
     const rationale = buildRationale(route, other);
-    for (const row of routeRows(route)) {
+    for (const row of routeRows(route, cells)) {
       const cell = h('span', row.className || '');
       cell.append(h('span', 'sr-only', `${row.label}: `), h('span', '', row.value));
       if (row.className === 'route-total' && overLimit) {
@@ -340,6 +501,7 @@ function renderElevationProfile() {
     hoverMapMarker.remove();
     hoverMapMarker = null;
   }
+  if (terrain3d) terrain3d.setHoverPoint(null);
 
   if (!route || !route.points || route.points.length < 2) {
     profileRouteLabelEl.textContent = '';
@@ -524,6 +686,7 @@ function renderElevationProfile() {
     } else {
       hoverMapMarker.setLatLng(xyToLatLng(bestPt.x, bestPt.y));
     }
+    if (terrain3d) terrain3d.setHoverPoint(bestPt);
   });
 
   overlayRect.addEventListener('mouseleave', () => {
@@ -534,6 +697,7 @@ function renderElevationProfile() {
       hoverMapMarker.remove();
       hoverMapMarker = null;
     }
+    if (terrain3d) terrain3d.setHoverPoint(null);
   });
 
   profileSvgEl.appendChild(overlayRect);
@@ -614,6 +778,49 @@ function renderConditionsAndLimits(conditions) {
     sourcesListEl.appendChild(block);
   }
 
+  // Data layers inside "Data and limits" panel
+  layersLimitsListEl.replaceChildren();
+  if (dataLayers.length > 0) {
+    layersLimitsSectionEl.hidden = false;
+    for (const layer of dataLayers) {
+      const block = h('div', 'source');
+      const head = h('div', 'source-head');
+      const effectText =
+        layer.weight != null
+          ? `${formatSignedWeight(layer.weight)} pts (${layer.effect || 'assumption'})`
+          : layer.effect || '';
+      head.append(h('span', '', layer.label), h('span', '', effectText));
+      block.appendChild(head);
+
+      if (layer.description) {
+        block.appendChild(h('div', 'source-meta', layer.description));
+      }
+      if (layer.source) {
+        const srcDiv = h('div', 'source-meta');
+        const urlMatch = String(layer.source).match(/https?:\/\/\S+/);
+        if (urlMatch) {
+          const url = urlMatch[0].replace(/[.,;)]$/, '');
+          const prefix = String(layer.source).replace(url, '').replace(/[,\s]+$/, '');
+          srcDiv.textContent = prefix ? `Source: ${prefix} ` : 'Source: ';
+          const a = h('a', '', 'Archive');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          srcDiv.appendChild(a);
+        } else {
+          srcDiv.textContent = `Source: ${layer.source}`;
+        }
+        block.appendChild(srcDiv);
+      }
+      if (layer.cannot_see) {
+        block.appendChild(h('div', 'source-limit', `Cannot show: ${layer.cannot_see}`));
+      }
+      layersLimitsListEl.appendChild(block);
+    }
+  } else {
+    layersLimitsSectionEl.hidden = true;
+  }
+
   // Risk model
   const rm = grid.meta.risk_model || {};
   const rmParts = [];
@@ -638,6 +845,7 @@ function showNoRoute(stop) {
   const msg = `No passable route to ${stop.name}`;
   routeAlertEl.textContent = msg;
   routeAlertEl.hidden = false;
+  if (terrain3d) terrain3d.setRoutes(currentRoutes, selectedRouteKind);
   renderRouteCards();
   renderElevationProfile();
 }
@@ -647,10 +855,12 @@ function recomputeRoutes() {
   routeAlertEl.hidden = true;
   routeAlertEl.textContent = '';
   currentRoutes = { shortest: null, low_risk: null };
+  currentCells = { shortest: null, low_risk: null };
   setStatus(terrainSummary());
 
   const chosen = getSelectedStops();
   if (chosen.length === 0) {
+    if (terrain3d) terrain3d.setRoutes(currentRoutes, selectedRouteKind);
     renderRouteCards();
     renderElevationProfile();
     return;
@@ -682,14 +892,17 @@ function recomputeRoutes() {
     stops: chosen,
   });
 
+  currentCells = { shortest: shortestRes.cells, low_risk: lowRiskRes.cells };
   currentRoutes = { shortest: shortestRoute, low_risk: lowRiskRoute };
   drawRouteLines();
+  if (terrain3d) terrain3d.setRoutes(currentRoutes, selectedRouteKind);
   renderRouteCards();
   renderElevationProfile();
 }
 
 async function main() {
   grid = await loadGrid('../app_data/');
+  dataLayers = await loadLayers(grid);
   if (grid.meta.mock) {
     demoBadgeEl.hidden = false;
   }
@@ -697,7 +910,7 @@ async function main() {
   const bounds = mapBounds(grid);
   map = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomSnap: 0.25 });
   L.imageOverlay(fileUrl(grid, 'ortho'), bounds).addTo(map);
-  const riskOverlay = L.imageOverlay(fileUrl(grid, 'risk_img'), bounds, { opacity: 0.7 });
+  riskOverlay = L.imageOverlay(fileUrl(grid, 'risk_img'), bounds, { opacity: 0.7 });
   const slopeOverlay = L.imageOverlay(fileUrl(grid, 'slope_img'), bounds, { opacity: 0.7 });
   riskOverlay.addTo(map);
   map.fitBounds(bounds);
@@ -705,11 +918,15 @@ async function main() {
   toggleRiskLayerEl.addEventListener('change', () => {
     if (toggleRiskLayerEl.checked) riskOverlay.addTo(map);
     else riskOverlay.remove();
+    if (terrain3d) terrain3d.setLayers({ risk: toggleRiskLayerEl.checked });
   });
   toggleSlopeLayerEl.addEventListener('change', () => {
     if (toggleSlopeLayerEl.checked) slopeOverlay.addTo(map);
     else slopeOverlay.remove();
+    if (terrain3d) terrain3d.setLayers({ slope: toggleSlopeLayerEl.checked });
   });
+
+  setupDataLayersUI(bounds);
 
   routeLayerGroup = L.layerGroup().addTo(map);
 
@@ -743,6 +960,39 @@ async function main() {
     stopMarkers.set(stop.id, marker);
   }
 
+  // Initialize 3D terrain viewer (pure WebGL, shares the same grid, overlays, stops and routes)
+  try {
+    terrain3d = createTerrain3D({
+      container: map3dEl,
+      grid,
+      habitat,
+      stops: allStops,
+      routeStyle: ROUTE_STYLE,
+      casingColor: CASING_COLOR,
+      onToggleStop: (stopId) => toggleStop(stopId),
+      onSelectRouteKind: (kind) => selectRouteKind(kind),
+    });
+    terrain3d.setLayers({
+      risk: toggleRiskLayerEl.checked,
+      slope: toggleSlopeLayerEl.checked,
+    });
+  } catch (err) {
+    console.warn('3D view unavailable:', err);
+  }
+
+  btnView2dEl.addEventListener('click', () => setViewMode('2d'));
+  btnView3dEl.addEventListener('click', () => setViewMode('3d'));
+
+  zScaleSliderEl.addEventListener('input', () => {
+    const val = parseFloat(zScaleSliderEl.value) || 3;
+    zScaleValEl.textContent = `${val}×`;
+    if (terrain3d) terrain3d.setZScale(val);
+  });
+
+  btnReset3dEl.addEventListener('click', () => {
+    if (terrain3d) terrain3d.resetCamera();
+  });
+
   clearStopsBtn.addEventListener('click', () => {
     selectedStopIds = [];
     renderStopsUI();
@@ -758,6 +1008,7 @@ async function main() {
 
   window.addEventListener('resize', () => {
     renderElevationProfile();
+    if (terrain3d) terrain3d.resize();
   });
 
   // Pre-select first two stops on load so two multi-stop routes are immediately visible

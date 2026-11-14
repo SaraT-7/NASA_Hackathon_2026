@@ -43,16 +43,37 @@
           <input type="checkbox" id="toggle-risk-layer" checked>
           <span>Estimated risk</span>
         </label>
+        <p id="risk-map-note" class="layer-subnote" hidden>Risk map shows all layers</p>
         <label class="check">
           <input type="checkbox" id="toggle-slope-layer">
           <span>Slope</span>
         </label>
+        <div id="data-layers-wrap" class="data-layers" hidden>
+          <h3 class="subhead">Data layers in route cost</h3>
+          <div id="data-layers-list" class="data-layers-list"></div>
+        </div>
       </section>
     </aside>
 
     <main class="center">
       <div class="map-wrap">
         <div id="map"></div>
+        <div id="map3d" class="map3d" hidden></div>
+
+        <div class="view-mode-bar" role="group" aria-label="Map dimension mode">
+          <button id="btn-view-2d" class="view-mode-btn" type="button" aria-pressed="true">2D Map</button>
+          <button id="btn-view-3d" class="view-mode-btn" type="button" aria-pressed="false">3D Terrain</button>
+        </div>
+
+        <div id="controls-3d" class="controls-3d" hidden>
+          <label class="exag-label" for="z-scale-slider">
+            <span>Vertical exaggeration</span>
+            <strong id="z-scale-val">3×</strong>
+          </label>
+          <input id="z-scale-slider" type="range" min="1" max="8" step="0.5" value="3">
+          <button id="btn-reset-3d" class="link-btn" type="button">Reset view</button>
+          <span class="controls-3d-hint">Drag to rotate · Right-drag / Shift+drag to pan · Scroll to zoom</span>
+        </div>
       </div>
 
       <section class="profile" aria-label="Elevation profile">
@@ -89,6 +110,10 @@
         <div class="limits-body">
           <h3>Sources</h3>
           <div id="sources-list"></div>
+          <div id="layers-limits-section" hidden>
+            <h3>Data layers</h3>
+            <div id="layers-limits-list"></div>
+          </div>
           <h3>Estimated risk model</h3>
           <p id="risk-model-box" class="limits-text"></p>
           <h3>Planning assumptions</h3>
