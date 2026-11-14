@@ -9,129 +9,91 @@
   <link rel="stylesheet" href="plan.css">
 </head>
 <body>
-  <header>
-    <div class="brand">
+  <header class="topbar">
+    <div class="topbar-title">
       <a href="../">MarsWalk</a>
-      <span class="sep">·</span>
-      <strong>Mission Planner</strong>
-      <span id="demo-badge" class="badge-demo" hidden>DEMO TERRAIN</span>
+      <span class="topbar-sep" aria-hidden="true">/</span>
+      <h1>Plan</h1>
+      <span id="demo-badge" class="demo-badge" hidden>DEMO TERRAIN</span>
     </div>
-    <span id="status">Loading…</span>
+    <p id="status" class="topbar-status" role="status">Loading terrain…</p>
   </header>
 
   <div class="workspace">
-    <aside class="sidebar-left">
-      <section class="panel-section">
-        <h2>Map Overlays</h2>
-        <div id="layers-list" class="layers-list">
-          <label class="layer-toggle">
-            <input type="checkbox" id="toggle-risk-layer" checked>
-            <span class="layer-toggle-info">
-              <span class="layer-toggle-title">Estimated risk</span>
-              <span class="layer-toggle-desc">Slope &amp; obstacle cost overlay</span>
-            </span>
-          </label>
-          <label class="layer-toggle">
-            <input type="checkbox" id="toggle-slope-layer">
-            <span class="layer-toggle-info">
-              <span class="layer-toggle-title">Slope (deg)</span>
-              <span class="layer-toggle-desc">Terrain steepness from DEM</span>
-            </span>
-          </label>
+    <aside class="side side-left" aria-label="Stops and map layers">
+      <section class="block">
+        <div class="block-head">
+          <h2>Stops</h2>
+          <button id="clear-stops-btn" class="link-btn" type="button" hidden>Clear</button>
         </div>
+        <p class="hint">Select stops in the order you will visit them, in this list or on the map.</p>
+        <div class="stop stop-habitat">
+          <span class="stop-marker" aria-hidden="true">H</span>
+          <span class="stop-text">
+            <span id="habitat-name" class="stop-name">Habitat (hypothetical)</span>
+            <span id="habitat-coords" class="stop-desc">Start and return point</span>
+          </span>
+        </div>
+        <ul id="stops-list" class="stops"></ul>
       </section>
 
-      <section class="panel-section">
-        <h2>Start Point</h2>
-        <div id="habitat-card" class="stop-item habitat-item">
-          <span class="stop-dot habitat-dot">H</span>
-          <div class="stop-info">
-            <div id="habitat-name" class="stop-name">Habitat (hypothetical)</div>
-            <div id="habitat-coords" class="stop-meta">Origin &amp; return point</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel-section stops-section">
-        <div class="section-header">
-          <h2>Science Stops</h2>
-          <button id="clear-stops-btn" class="btn-small" type="button">Clear</button>
-        </div>
-        <p class="section-hint">Click stops in visiting order (or click markers on the map).</p>
-        <div id="stops-list" class="stops-list"></div>
-      </section>
-
-      <section class="panel-section">
-        <h2>Visiting Sequence</h2>
-        <div id="sequence-summary" class="sequence-summary">Select at least one science stop.</div>
-        <div id="route-alert" class="route-alert" hidden></div>
+      <section class="block">
+        <h2>Map layers</h2>
+        <label class="check">
+          <input type="checkbox" id="toggle-risk-layer" checked>
+          <span>Estimated risk</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="toggle-slope-layer">
+          <span>Slope</span>
+        </label>
       </section>
     </aside>
 
-    <main class="center-col">
+    <main class="center">
       <div class="map-wrap">
         <div id="map"></div>
-        <div id="map-demo-banner" class="map-demo-banner" hidden>
-          DEMO TERRAIN · Synthetic test rasters (not real Mars measurements)
-        </div>
-        <div class="map-legend">
-          <span class="legend-item"><span class="legend-line shortest-line"></span> Shortest (weight 0)</span>
-          <span class="legend-item"><span class="legend-line lowrisk-line"></span> Lowest estimated risk (weight 8)</span>
-        </div>
       </div>
 
-      <section class="profile-panel">
-        <div class="profile-header">
-          <h2>Elevation Profile <span id="profile-route-label" class="profile-sub"></span></h2>
-          <span id="profile-hover-info" class="profile-hover">Hover over chart to inspect point on map</span>
+      <section class="profile" aria-label="Elevation profile">
+        <div class="profile-head">
+          <h2>Elevation profile <span id="profile-route-label" class="profile-route"></span></h2>
+          <span id="profile-hover-info" class="profile-readout"></span>
         </div>
-        <div id="profile-wrap" class="profile-wrap">
-          <svg id="profile-svg" class="profile-svg" preserveAspectRatio="none"></svg>
+        <div id="profile-wrap" class="profile-plot">
+          <svg id="profile-svg" preserveAspectRatio="none" role="img" aria-label="Elevation along the selected route"></svg>
         </div>
       </section>
     </main>
 
-    <aside class="sidebar-right">
-      <section class="panel-section">
-        <div class="section-header">
-          <h2>Route Alternatives</h2>
-          <span class="section-sub">Click a card to select</span>
-        </div>
-        <div id="routes-container" class="routes-grid"></div>
-        <div class="start-walk-bar">
-          <button id="start-walk-btn" class="btn-start-walk" type="button" disabled>
-            Start walk →
-          </button>
-        </div>
+    <aside class="side side-right" aria-label="Routes, conditions and data">
+      <section class="block">
+        <h2>Routes</h2>
+        <div id="routes-container"></div>
+        <p id="route-rationale" class="rationale" hidden></p>
+        <div id="route-alert" class="alert" role="alert" hidden></div>
+        <button id="start-walk-btn" class="primary-btn" type="button" disabled>Start walk</button>
       </section>
 
-      <section class="panel-section conditions-section">
-        <div class="section-header">
+      <section class="block">
+        <div class="block-head">
           <h2>Last measured conditions</h2>
-          <span id="conditions-mock-tag" class="tag-mock" hidden>MOCK</span>
+          <span id="conditions-mock-tag" class="demo-badge" hidden>MOCK</span>
         </div>
-        <p id="conditions-note" class="section-hint">Last archived measurements, not real time.</p>
-        <div id="conditions-list" class="conditions-list"></div>
+        <p id="conditions-note" class="hint">Last archived measurements, not real time.</p>
+        <div id="conditions-list" class="conditions"></div>
       </section>
 
-      <details id="data-limits-details" class="data-limits-panel">
-        <summary class="data-limits-summary">
-          <span>Data and limits</span>
-          <span class="summary-hint">Sources, risk model &amp; assumptions</span>
-        </summary>
-        <div class="data-limits-body">
-          <div class="limits-block">
-            <h3>Data sources &amp; resolution limits</h3>
-            <div id="sources-list" class="sources-list"></div>
-          </div>
-          <div class="limits-block">
-            <h3>Estimated risk model</h3>
-            <div id="risk-model-box" class="limits-box"></div>
-          </div>
-          <div class="limits-block">
-            <h3>Planning assumptions (not NASA specs)</h3>
-            <div id="assumptions-list" class="assumptions-list"></div>
-          </div>
+      <details id="data-limits-details" class="block limits">
+        <summary>Data and limits</summary>
+        <div class="limits-body">
+          <h3>Sources</h3>
+          <div id="sources-list"></div>
+          <h3>Estimated risk model</h3>
+          <p id="risk-model-box" class="limits-text"></p>
+          <h3>Planning assumptions</h3>
+          <p class="limits-text">These are the team's assumptions, not NASA specifications.</p>
+          <dl id="assumptions-list" class="pairs"></dl>
         </div>
       </details>
     </aside>
