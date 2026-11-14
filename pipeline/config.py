@@ -35,7 +35,8 @@ AOI_EAST = AOI_WEST + AOI_SIZE_M
 AOI_SOUTH = AOI_NORTH - AOI_SIZE_M
 
 CELL_M = 2  # grid cell size used by the web app
-SLOPE_LIMIT_DEG = 30  # ASSUMPTION: cells this steep or steeper are impassable in a suit
+SLOPE_LIMIT_DEG = 20  # cells this steep or steeper are impassable. NASA xEVA suit capability: walking on slopes of up to
+# 20 degrees (EVA-EXP-0075, written for lunar missions). See docs/CONTRACT.md, section 6.
 
 GDAL_ENV = dict(
     GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",

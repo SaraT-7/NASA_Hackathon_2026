@@ -1,0 +1,32 @@
+{
+  "s1": {
+    "imageid": "NLB_802308417EDR_F1161944NCAM00265M_",
+    "url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04560/opgs/edr/ncam/NLB_802308417EDR_F1161944NCAM00265M_.JPG",
+    "sol": 4560,
+    "instrument": "Navcam",
+    "camera": "NAV_LEFT_B",
+    "date_taken": "2025-06-04T12:32:45.000Z",
+    "credit": "NASA/JPL-Caltech",
+    "caption": "Looking across the first boxwork terrain from where Curiosity stopped."
+  },
+  "s2": {
+    "imageid": "NRB_816699278EDR_F1200082NCAM00722M_",
+    "url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04722/opgs/edr/ncam/NRB_816699278EDR_F1200082NCAM00722M_.JPG",
+    "sol": 4722,
+    "instrument": "Navcam",
+    "camera": "NAV_RIGHT_B",
+    "date_taken": "2025-11-18T02:02:43.000Z",
+    "credit": "NASA/JPL-Caltech",
+    "caption": "A low ridge running away from the rover in the central boxwork terrain."
+  },
+  "s3": {
+    "imageid": "NRB_830175770EDR_F1220000NCAM00353M_",
+    "url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04874/opgs/edr/ncam/NRB_830175770EDR_F1220000NCAM00353M_.JPG",
+    "sol": 4874,
+    "instrument": "Navcam",
+    "camera": "NAV_RIGHT_B",
+    "date_taken": "2026-04-23T01:33:04.000Z",
+    "credit": "NASA/JPL-Caltech",
+    "caption": "Broken bedrock slabs at the site where Curiosity worked for about 40 sols."
+  }
+}

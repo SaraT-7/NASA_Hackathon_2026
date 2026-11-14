@@ -129,6 +129,14 @@ def main():
              "photo": None},
         ]],
     }
+    # Photos chosen in step 5 (pipeline/stop_photos.json); a stop keeps photo = None until its file exists.
+    photo_file = c.REPO / "pipeline" / "stop_photos.json"
+    chosen = json.loads(photo_file.read_text(encoding="utf-8")) if photo_file.exists() else {}
+    for s in stops["stops"]:
+        p = chosen.get(s["id"])
+        if p and (c.APP / "photos" / f"{s['id']}.jpg").exists():
+            s["photo"] = {"file": f"photos/{s['id']}.jpg", "sol": p["sol"], "instrument": p["instrument"],
+                          "credit": p["credit"], "caption": p["caption"], "source_url": p["url"]}
     (c.APP / "stops.json").write_text(json.dumps(stops, indent=2), encoding="utf-8")
 
     sw_lon, sw_lat = c.to_lonlat(c.AOI_WEST, c.AOI_SOUTH)
@@ -155,8 +163,9 @@ def main():
         "risk_model": {
             "slope_limit_deg": c.SLOPE_LIMIT_DEG,
             "description": (
-                f"Estimated risk = slope / {c.SLOPE_LIMIT_DEG} deg x 100. Cells at or above {c.SLOPE_LIMIT_DEG} deg are impassable "
-                f"(an assumption for suited walking). Slope is taken from the 1 m elevation model after {SMOOTH_SIGMA_M} m "
+                f"Estimated risk = slope / {c.SLOPE_LIMIT_DEG} deg x 100. Cells at or above {c.SLOPE_LIMIT_DEG} deg are impassable: "
+                f"NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). "
+                f"Slope is taken from the 1 m elevation model after {SMOOTH_SIGMA_M} m "
                 f"Gaussian smoothing; each {f} m cell keeps its steepest value. Rocks and loose sand are not in the model yet."
             ),
         },

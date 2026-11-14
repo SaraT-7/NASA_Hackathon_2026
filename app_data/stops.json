@@ -15,7 +15,14 @@
       "x": 1117.4,
       "y": 1290.6,
       "description": "Curiosity stopped here for 11 sols from sol 4560, soon after entering the boxwork terrain.",
-      "photo": null
+      "photo": {
+        "file": "photos/s1.jpg",
+        "sol": 4560,
+        "instrument": "Navcam",
+        "credit": "NASA/JPL-Caltech",
+        "caption": "Looking across the first boxwork terrain from where Curiosity stopped.",
+        "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04560/opgs/edr/ncam/NLB_802308417EDR_F1161944NCAM00265M_.JPG"
+      }
     },
     {
       "id": "s2",
@@ -24,7 +31,14 @@
       "x": 966.3,
       "y": 805.5,
       "description": "Curiosity worked within a few metres of this spot from sol 4687 to sol 4805.",
-      "photo": null
+      "photo": {
+        "file": "photos/s2.jpg",
+        "sol": 4722,
+        "instrument": "Navcam",
+        "credit": "NASA/JPL-Caltech",
+        "caption": "A low ridge running away from the rover in the central boxwork terrain.",
+        "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04722/opgs/edr/ncam/NRB_816699278EDR_F1200082NCAM00722M_.JPG"
+      }
     },
     {
       "id": "s3",
@@ -33,7 +47,14 @@
       "x": 1008.6,
       "y": 435.8,
       "description": "Curiosity stayed here for about 40 sols from sol 4868, higher up the slope.",
-      "photo": null
+      "photo": {
+        "file": "photos/s3.jpg",
+        "sol": 4874,
+        "instrument": "Navcam",
+        "credit": "NASA/JPL-Caltech",
+        "caption": "Broken bedrock slabs at the site where Curiosity worked for about 40 sols.",
+        "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04874/opgs/edr/ncam/NRB_830175770EDR_F1220000NCAM00353M_.JPG"
+      }
     }
   ]
 }
