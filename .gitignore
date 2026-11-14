@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Ortam / gizli bilgiler
+.env
+.streamlit/secrets.toml
+
+# Büyük veri dosyaları (GitHub 100 MB sınırı) - Drive üzerinden paylaşın
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.tif
+*.tiff
+*.img
+*.IMG
+*.jp2
+*.lbl
+*.zip
+
+# Editör / işletim sistemi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
