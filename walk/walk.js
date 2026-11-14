@@ -16,7 +16,7 @@ const MAX_FRAME_S = 0.25;
 const DEMO_SPEEDS = [1, 30, 120];
 
 const RETURN_MARGIN_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
-const RETURN_NOTE = `Same path, walked back. Planned time includes a ${RETURN_MARGIN_PCT} % safety margin.`;
+const RETURN_NOTE = `Same path, walked back. Planned time includes a ${RETURN_MARGIN_PCT}\u00a0% safety margin.`;
 
 const el = (id) => document.getElementById(id);
 
@@ -82,16 +82,16 @@ function pct(value) {
 /** Battery-style gauge: estimated oxygen left, with a line at what the walk back needs. */
 function drawOxygen(s, statusKey) {
   const g = oxygenGauge(route, s);
-  setText(el('o2-left'), `${pct(g.leftPct)} %`);
+  setText(el('o2-left'), `${pct(g.leftPct)}\u00a0%`);
   el('o2-fill').style.width = `${Math.min(100, g.leftPct)}%`;
   el('o2-fill').dataset.status = statusKey;
   el('o2-home').style.left = `${Math.min(100, g.homePct)}%`;
   el('o2-home').hidden = g.homePct <= 0;
-  const budget = `100 % = ${Math.round((ASSUMPTIONS.EVA_LIMIT_S / 3600) * 10) / 10} h suit budget.`;
+  const budget = `100\u00a0% = ${Math.round((ASSUMPTIONS.EVA_LIMIT_S / 3600) * 10) / 10} h suit budget.`;
   let note;
-  if (s.phase === PHASE.DONE) note = `Back inside with ${pct(g.leftPct)} % left.`;
+  if (s.phase === PHASE.DONE) note = `Back inside with ${pct(g.leftPct)}\u00a0% left.`;
   else if (g.homePct <= 0) note = budget;
-  else note = `Line: walk back needs ${pct(g.homePct)} %. ${budget}`;
+  else note = `Line: walk back needs ${pct(g.homePct)}\u00a0%. ${budget}`;
   setText(el('o2-note'), note);
 }
 
@@ -136,15 +136,16 @@ function drawCheck(s) {
   const leftAtHome = Math.round(budgetPct(c.spareS));
   const need = have - leftAtHome; // so the three numbers on screen always add up
   setText(el('check-plan'), c.last
-    ? `Last stop. Finishing here and walking back needs ${need} % of your ${have} %.`
-    : `Next: ${c.next.name} and back needs ${need} % of your ${have} %.`);
+    ? `Last stop. Finishing here and walking back needs ${need}\u00a0% of your ${have}\u00a0%.`
+    : `Next: ${c.next.name} and back needs ${need}\u00a0% of your ${have}\u00a0%.`);
   setText(el('check-verdict'), c.verdict.label);
-  setText(el('check-left'), leftAtHome >= 0 ? `${leftAtHome} % left at the habitat` : `${-leftAtHome} % short. Turn back from here.`);
+  setText(el('check-left'), leftAtHome >= 0 ? `${leftAtHome}\u00a0% left at the habitat` : `${-leftAtHome}\u00a0% short. Turn back from here.`);
 }
 
 function draw() {
   const s = walk.snapshot();
   if (walkMap) walkMap.update(s);
+  document.body.dataset.phase = s.phase; // lets the small-screen layout give the stop card more room
   el('speed').hidden = s.phase === PHASE.AT_STOP; // the clock waits at a stop, and the stop card covers the map
   const statusKey = drawIndicators(s);
   drawOxygen(s, statusKey);
