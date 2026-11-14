@@ -4,6 +4,8 @@ import { loadRoute, loadMockRoute } from '../shared/route.js';
 import { ASSUMPTIONS, formatDuration } from '../shared/walk-model.js';
 import { createWalk, PHASE } from './state.js';
 import { readout } from './status.js';
+import { nextStopCheck } from './check.js';
+import { oxygenGauge, budgetPct } from './oxygen.js';
 
 /** Longest step of real time one frame may add, so a stalled tab cannot jump the walk forward. */
 const MAX_FRAME_S = 0.25;
@@ -45,6 +47,7 @@ function drawIndicators(s) {
     setText(el('limit-label'), 'Turn back in');
     setText(el('limit'), formatDuration(r.turnBackInS));
   }
+  return r.status.key;
 }
 
 function drawControls(s) {
@@ -64,9 +67,50 @@ function drawControls(s) {
   setText(el('return-note'), s.phase === PHASE.DONE ? 'Marswalk complete.' : RETURN_NOTE);
 }
 
+/** Whole percent for display; never shows 0 % while some budget is left. */
+function pct(value) {
+  if (value <= 0) return 0;
+  return Math.max(1, Math.round(value));
+}
+
+/** Battery-style gauge: estimated oxygen left, with a line at what the walk back needs. */
+function drawOxygen(s, statusKey) {
+  const g = oxygenGauge(route, s);
+  setText(el('o2-left'), `${pct(g.leftPct)} %`);
+  el('o2-fill').style.width = `${Math.min(100, g.leftPct)}%`;
+  el('o2-fill').dataset.status = statusKey;
+  el('o2-home').style.left = `${Math.min(100, g.homePct)}%`;
+  el('o2-home').hidden = g.homePct <= 0;
+  const budget = `100 % = ${Math.round((ASSUMPTIONS.EVA_LIMIT_S / 3600) * 10) / 10} h suit budget.`;
+  let note;
+  if (s.phase === PHASE.DONE) note = `Back inside with ${pct(g.leftPct)} % left.`;
+  else if (g.homePct <= 0) note = budget;
+  else note = `Line: walk back needs ${pct(g.homePct)} %. ${budget}`;
+  setText(el('o2-note'), note);
+}
+
+/** At a stop: is there enough oxygen to go on to the next stop, work there and walk back? */
+function drawCheck(s) {
+  const c = nextStopCheck(route, s);
+  const box = el('stop-check');
+  box.hidden = !c;
+  if (!c) return;
+  box.dataset.verdict = c.verdict.key;
+  const have = pct(budgetPct(c.haveS));
+  const leftAtHome = Math.round(budgetPct(c.spareS));
+  const need = have - leftAtHome; // so the three numbers on screen always add up
+  setText(el('check-plan'), c.last
+    ? `Finish here and walk back: needs ${need} % of your ${have} %`
+    : `Go on to ${c.next.name} and walk back: needs ${need} % of your ${have} %`);
+  setText(el('check-verdict'), c.verdict.label);
+  setText(el('check-left'), leftAtHome >= 0 ? `${leftAtHome} % left at the habitat` : `${-leftAtHome} % short. Turn back from here.`);
+}
+
 function draw() {
   const s = walk.snapshot();
-  drawIndicators(s);
+  const statusKey = drawIndicators(s);
+  drawOxygen(s, statusKey);
+  drawCheck(s);
   drawControls(s);
 }
 
