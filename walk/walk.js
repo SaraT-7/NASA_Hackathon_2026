@@ -7,6 +7,7 @@ import { readout } from './status.js';
 import { nextStopCheck } from './check.js';
 import { oxygenGauge, budgetPct } from './oxygen.js';
 import { loadGridMeta, createWalkMap } from './map.js';
+import { loadJson } from '../shared/data.js';
 
 /** Longest step of real time one frame may add, so a stalled tab cannot jump the walk forward. */
 const MAX_FRAME_S = 0.25;
@@ -22,6 +23,9 @@ const el = (id) => document.getElementById(id);
 let route = null;
 let walk = null;
 let walkMap = null; // stays null if the map cannot be drawn; the walk still works without it
+let stopInfo = new Map(); // stop id -> entry from stops.json (description, photo); empty if it cannot be read
+let photoBase = '../app_data/';
+let shownStopId = null;
 let speed = DEMO_SPEEDS[0];
 let lastFrameMs = null;
 
@@ -91,6 +95,36 @@ function drawOxygen(s, statusKey) {
   setText(el('o2-note'), note);
 }
 
+/** Credit line under a Curiosity photo, from the fields stops.json provides. */
+function photoCredit(photo) {
+  return [`Curiosity ${photo.instrument || ''}`.trim(), photo.sol != null ? `sol ${photo.sol}` : null, photo.credit].filter(Boolean).join(' · ');
+}
+
+/** At a stop the stop card covers the map: name, description and Curiosity's photo from that spot. */
+function drawStopCard(s) {
+  const atStop = s.phase === PHASE.AT_STOP && s.nextStop;
+  el('stop-card').hidden = !atStop;
+  if (!atStop) {
+    shownStopId = null;
+    return;
+  }
+  if (shownStopId === s.nextStop.id) return; // filled once per stop
+  shownStopId = s.nextStop.id;
+  const info = stopInfo.get(s.nextStop.id) || {};
+  setText(el('stop-num'), String(s.stopsDone + 1)); // same number as on the map
+  el('stop-num').title = `Stop ${s.stopsDone + 1} of ${s.stopsTotal}`;
+  setText(el('stop-name'), info.name || s.nextStop.name);
+  setText(el('stop-desc'), info.description || '');
+  const photo = info.photo;
+  el('stop-photo-wrap').hidden = !photo;
+  el('stop-credit').hidden = !photo;
+  if (photo) {
+    el('stop-photo').src = photoBase + photo.file;
+    el('stop-photo').alt = photo.caption || `Curiosity photo at ${info.name || s.nextStop.name}`;
+    setText(el('stop-credit'), photoCredit(photo));
+  }
+}
+
 /** At a stop: is there enough oxygen to go on to the next stop, work there and walk back? */
 function drawCheck(s) {
   const c = nextStopCheck(route, s);
@@ -102,8 +136,8 @@ function drawCheck(s) {
   const leftAtHome = Math.round(budgetPct(c.spareS));
   const need = have - leftAtHome; // so the three numbers on screen always add up
   setText(el('check-plan'), c.last
-    ? `Finish here and walk back: needs ${need} % of your ${have} %`
-    : `Go on to ${c.next.name} and walk back: needs ${need} % of your ${have} %`);
+    ? `Last stop. Finishing here and walking back needs ${need} % of your ${have} %.`
+    : `Next: ${c.next.name} and back needs ${need} % of your ${have} %.`);
   setText(el('check-verdict'), c.verdict.label);
   setText(el('check-left'), leftAtHome >= 0 ? `${leftAtHome} % left at the habitat` : `${-leftAtHome} % short. Turn back from here.`);
 }
@@ -111,9 +145,10 @@ function drawCheck(s) {
 function draw() {
   const s = walk.snapshot();
   if (walkMap) walkMap.update(s);
-  el('speed').hidden = s.phase === PHASE.AT_STOP; // the clock waits at a stop, and the stop check covers the map
+  el('speed').hidden = s.phase === PHASE.AT_STOP; // the clock waits at a stop, and the stop card covers the map
   const statusKey = drawIndicators(s);
   drawOxygen(s, statusKey);
+  drawStopCard(s);
   drawCheck(s);
   drawControls(s);
 }
@@ -178,6 +213,14 @@ async function main() {
   walk = createWalk(route);
   try {
     const grid = await loadGridMeta('../app_data/');
+    photoBase = grid.base;
+    try {
+      const { stops } = await loadJson(grid, 'stops');
+      stopInfo = new Map(stops.map((stop) => [stop.id, stop]));
+      for (const stop of stops) if (stop.photo) new Image().src = grid.base + stop.photo.file; // ready before arrival
+    } catch (err) {
+      console.warn('Stop details not available:', err.message);
+    }
     walkMap = createWalkMap(el('stage'), grid, route);
     window.addEventListener('resize', () => walkMap.resize());
   } catch (err) {

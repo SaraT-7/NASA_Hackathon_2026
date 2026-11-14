@@ -140,15 +140,38 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 .battery-home[hidden] { display: none; }
 .tile .o2-note { margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Next stop check: shown only at a stop. Same thresholds as the status strip. */
-.stop-check { position: absolute; inset: 0; z-index: 1000; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: 10px 14px; border: 3px solid #6b5648; }
+/* Stop card: covers the map at a stop. Curiosity's photo from that spot, the stop, and the oxygen check. */
+.stop-card {
+  position: absolute; inset: 0; z-index: 1000; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; background: var(--panel); border-radius: 12px;
+}
+.stop-card[hidden] { display: none; }
+.stop-top { flex: 1 1 auto; min-height: 0; display: flex; gap: 10px; }
+.stop-photo { position: relative; flex: none; height: 100%; aspect-ratio: 1; margin: 0; border-radius: 8px; overflow: hidden; background: #000; }
+.stop-photo[hidden] { display: none; }
+.stop-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.stop-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.stop-name { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; line-height: 1.2; color: var(--text); }
+.stop-num {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border: 2px solid #fff; border-radius: 50%; font-size: 11px; background: #fff; color: #120e0c; box-shadow: 0 0 0 2px var(--accent);
+}
+.stop-desc {
+  margin: 0; font-size: 12px; line-height: 1.25; color: var(--muted);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+}
+.stop-credit { margin: auto 0 0; font-size: 10px; line-height: 1.25; color: var(--muted); opacity: 0.85; }
+.stop-credit[hidden] { display: none; }
+
+/* Oxygen check inside the stop card. Same thresholds and colours as the status strip. */
+.stop-check { flex: none; padding: 5px 10px; border: 3px solid #6b5648; border-radius: 10px; background: var(--bg); }
 .stop-check[hidden] { display: none; }
 .stop-check[data-verdict="ok"] { border-color: #2fc25b; }
 .stop-check[data-verdict="tight"] { border-color: #ffd21f; }
 .stop-check[data-verdict="no"] { border-color: #c62828; }
-.tile .check-plan { font-size: 16px; font-weight: 600; line-height: 1.3; }
-.tile .check-result { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 18px; }
-.verdict { padding: 3px 8px; border-radius: 6px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
+.check-result { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 15px; font-weight: 700; }
+.check-plan { margin: 3px 0 0; font-size: 12px; line-height: 1.3; color: var(--muted); }
+.verdict { padding: 2px 6px; border-radius: 5px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; }
 .stop-check[data-verdict="ok"] .verdict { background: #2fc25b; color: #04210d; }
 .stop-check[data-verdict="tight"] .verdict { background: #ffd21f; color: #2b2100; }
 .stop-check[data-verdict="no"] .verdict { background: #c62828; color: #fff; }
