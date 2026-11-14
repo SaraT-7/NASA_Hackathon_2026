@@ -87,7 +87,7 @@ Görsellerin gerçek dosya adları `grid.json` içindeki `files` alanından okun
     "slope_img": "slope.png", "risk_img": "risk.png",
     "stops": "stops.json", "curiosity_path": "curiosity_path.json", "conditions": "conditions.json"
   },
-  "risk_model": { "slope_limit_deg": 30, "description": "..." },
+  "risk_model": { "slope_limit_deg": 20, "description": "..." },
   "sources": [
     { "layer": "Elevation and slope", "mission": "...", "instrument": "...", "product_id": "...",
       "resolution_m": 1, "url": "https://...", "cannot_see": "what this data cannot resolve" }
@@ -178,7 +178,7 @@ kaydeder. Yürüyüş ekranı `loadRoute()` ile okur. İki ekran arasındaki **t
 | Modül | Dışa verdikleri |
 | --- | --- |
 | `shared/data.js` | `loadGrid(base)`, `fileUrl(grid, key)`, `loadJson(grid, key)`, `cellIndex`, `indexToCell`, `cellCenter`, `xyToCell`, `xyToLatLng`, `latLngToXy`, `mapBounds`, `xyToGeo`, `isPassable`, `riskForCost`, sabitler `RISK_NODATA`, `RISK_IMPASSABLE`, `SLOPE_NODATA` |
-| `shared/walk-model.js` | `ASSUMPTIONS`, `speedMps(grade)`, `stepTimeS(distM, dzM)`, `formatDuration(seconds)` |
+| `shared/walk-model.js` | `ASSUMPTIONS`, `ASSUMPTION_NOTES`, `speedMps(grade)`, `stepTimeS(distM, dzM)`, `formatDuration(seconds)` |
 | `shared/route.js` | `buildRoute(grid, cells, opts)`, `saveRoute`, `loadRoute`, `loadMockRoute`, `returnTimeS(route, fromIndex)`, `totalEvaS(route)`, `nearestPointIndex`, `ROUTE_KEY` |
 | `shared/vendor/leaflet/` | Leaflet 1.9.4 (harita kütüphanesi). İnternetten yüklemeyin, buradan kullanın. |
 
@@ -201,15 +201,25 @@ Kurallar:
 
 ## 6. Varsayımlar
 
-`shared/walk-model.js` içindeki sayılar NASA ölçümü değil, bizim varsayımımızdır. Arayüzde "assumption" olarak gösterilir.
+Bu sayılar ölçüm değil, planlama varsayımıdır. Arayüzde "assumption" olarak gösterilir.
+İlk dördü `shared/walk-model.js` içindeki `ASSUMPTIONS` nesnesinde, eğim sınırı `grid.json` içinde durur.
+Arayüzde göstermek için hazır İngilizce metinler: `ASSUMPTION_NOTES` (aynı dosyada).
 
-| Sabit | Değer | Anlamı |
-| --- | --- | --- |
-| `SUIT_SPEED_FACTOR` | 0,5 | Giysili yürüyüş hızı, giysisiz yürüyüş hızının (Tobler fonksiyonu) yarısı |
-| `RETURN_FACTOR` | 1,2 | Dönüş, yorgunluk ve taşınan örnekler yüzünden %20 daha yavaş |
-| `EVA_LIMIT_S` | 6 saat | Tek bir yürüyüş için planlama sınırı |
-| `STOP_WORK_S` | 20 dakika | Her bilim durağında çalışma süresi |
-| `slope_limit_deg` (`grid.json`) | 30° | Bu eğim ve üzeri geçilmez sayılır |
+| Sabit | Değer | Anlamı | Kaynak |
+| --- | --- | --- | --- |
+| `FLAT_SPEED_KMH` | 2,0 km/saat | Giysili astronotun düz zemindeki yürüme hızı. Eğimde Tobler yürüyüş fonksiyonuna göre değişir. `SUIT_SPEED_FACTOR` bu sayıdan türetilir. | NASA'nın Artemis yürüyüş menzili çalışması (NTRS 20210026296): 2 km/saat. Apollo planlamacıları uzun geri yürüyüşler için 2,7 km/saat varsaymıştı (Apollo Lunar Surface Journal). |
+| `EVA_LIMIT_S` | 6 saat | Tek bir yürüyüş için planlama sınırı | NASA EVA-EXP-0075: 8 saate kadar, 6 ± 2 saat |
+| `RETURN_FACTOR` | 1,2 | **Güvenlik payı:** planlanan dönüş süresine %20 eklenir. Ölçülmüş bir yavaşlama değildir. | Bizim seçimimiz |
+| `STOP_WORK_S` | 20 dakika | Her bilim durağında çalışma süresi | Bizim seçimimiz |
+| `slope_limit_deg` (`grid.json`) | 20° | Bu eğim ve üzeri geçilmez sayılır | NASA EVA-EXP-0075: giysiyle 20°'ye kadar eğimde yukarı, aşağı ve yanlamasına yürüme |
+
+NASA kaynakları Ay görevleri (Artemis) için yazılmıştır; Mars için ayrı bir giysi şartnamesi yoktur. Arayüzde ve sunumda böyle belirtilir.
+
+Kaynaklar:
+
+- EVA-EXP-0075, Exploration EVA System Concept of Operations Summary: https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf
+- Artemis yürüyüş menzili çalışması: https://ntrs.nasa.gov/citations/20210026296
+- Apollo Lunar Surface Journal, "Lunar Gaits": https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/a11.gaits.html
 
 ## 7. Dil ve dürüstlük kuralları
 
@@ -217,6 +227,7 @@ Kurallar:
 - "Safe route" yazılmaz; **"lowest estimated risk"** yazılır.
 - "Live" ya da "real-time" yazılmaz; **"last measured"** ve ölçüm tarihi yazılır.
 - Habitat ve astronot konumu **"hypothetical"** / **"simulated"** olarak etiketlenir.
+- Dönüşteki %20 için "slower return" yazılmaz; **"safety margin"** yazılır.
 - Deneme verisi açıkken ekranda "DEMO TERRAIN" ya da "DEMO ROUTE" görünür.
 
 ## 8. Git akışı
