@@ -1,37 +1,38 @@
 {
-  "mock": true,
+  "mock": false,
+  "note": "Stops are places where the Curiosity rover stayed for many sols. The habitat is hypothetical.",
   "habitat": {
     "id": "habitat",
     "name": "Habitat (hypothetical)",
-    "x": 120,
-    "y": 140
+    "x": 1128,
+    "y": 1460
   },
   "stops": [
     {
       "id": "s1",
-      "name": "Ridge junction",
+      "name": "Boxwork edge site",
       "type": "science",
-      "x": 380,
-      "y": 420,
-      "description": "Three ridges meet: sample the ridge crest.",
+      "x": 1117.4,
+      "y": 1290.6,
+      "description": "Curiosity stopped here for 11 sols from sol 4560, soon after entering the boxwork terrain.",
       "photo": null
     },
     {
       "id": "s2",
-      "name": "Sandy hollow",
+      "name": "Central boxwork site",
       "type": "science",
-      "x": 560,
-      "y": 700,
-      "description": "Hollow between ridges: sample the floor.",
+      "x": 966.3,
+      "y": 805.5,
+      "description": "Curiosity worked within a few metres of this spot from sol 4687 to sol 4805.",
       "photo": null
     },
     {
       "id": "s3",
-      "name": "Butte foot",
+      "name": "Upper boxwork site",
       "type": "science",
-      "x": 700,
-      "y": 520,
-      "description": "Layered outcrop at the foot of the butte.",
+      "x": 1008.6,
+      "y": 435.8,
+      "description": "Curiosity stayed here for about 40 sols from sol 4868, higher up the slope.",
       "photo": null
     }
   ]
