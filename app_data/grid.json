@@ -25,7 +25,8 @@
     "risk_img": "risk.png",
     "stops": "stops.json",
     "curiosity_path": "curiosity_path.json",
-    "conditions": "conditions.json"
+    "conditions": "conditions.json",
+    "risk_slope": "layers/slope_risk.bin"
   },
   "risk_model": {
     "slope_limit_deg": 20,

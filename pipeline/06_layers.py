@@ -5,6 +5,7 @@
     node tools/make_mock_route.mjs
 
 Run after step 3 (it reads data/work/slope_2m.npy and rewrites app_data/risk.bin and risk.png).
+The slope-only risk goes to app_data/layers/slope_risk.bin, so the app can switch layers on and off.
 Each layer is a 0-100 score per grid cell, written to app_data/layers/<id>.bin with a map image <id>.png.
 Combined risk = slope / SLOPE_LIMIT_DEG x 100 + sum(weight x layer / 100), clipped to 0..100.
 Cells at or above the slope limit stay impassable whatever the layers say; layers never open a closed cell.
@@ -83,7 +84,13 @@ def main():
     slope = np.load(c.WORK / "slope_2m.npy").astype(np.float64)
     old_risk = np.fromfile(c.APP / grid["files"]["risk"], dtype=np.uint8).reshape(rows, cols)
 
-    total = np.clip(slope / c.SLOPE_LIMIT_DEG * 100, 0, 100)
+    # Slope-only risk, rounded exactly like step 3; written out so the app can rebuild the risk with any set of
+    # layers (shared/data.js combineRisk). Rounding is floor(x + 0.5) to match JavaScript's Math.round.
+    jsround = lambda a: np.floor(a + 0.5)
+    slope_risk = jsround(np.clip(slope / c.SLOPE_LIMIT_DEG * 100, 0, 100)).astype(np.uint8)
+    slope_risk[slope >= c.SLOPE_LIMIT_DEG] = RISK_IMPASSABLE
+    slope_risk[old_risk == RISK_NODATA] = RISK_NODATA
+    total = slope_risk.astype(np.float64)
     (c.APP / "layers").mkdir(exist_ok=True)
     layer_meta = []
     for make in LAYERS:
@@ -104,10 +111,12 @@ def main():
                            "cells_share": round(float((score > 0).mean()), 4), **extra})
         print(f"layer {lid}: weight {weight:+d}, {(score > 0).mean():.1%} of cells, {extra}")
 
-    risk = np.clip(np.round(total), 0, 100).astype(np.uint8)
-    risk[slope >= c.SLOPE_LIMIT_DEG] = RISK_IMPASSABLE
-    risk[old_risk == RISK_NODATA] = RISK_NODATA
+    risk = np.clip(jsround(total), 0, 100).astype(np.uint8)
+    closed = slope_risk >= RISK_NODATA  # impassable or no data: layers never change these
+    risk[closed] = slope_risk[closed]
     risk.tofile(c.APP / grid["files"]["risk"])
+    slope_risk.tofile(c.APP / "layers" / "slope_risk.bin")
+    grid["files"]["risk_slope"] = "layers/slope_risk.bin"
     risk_rgba = export.colourise(
         np.clip(risk.astype(np.float64) / 100, 0, 1),
         [(0, (26, 152, 80, 0)), (0.35, (166, 217, 106, 140)), (0.65, (253, 174, 97, 200)), (1, (215, 48, 39, 230))],
