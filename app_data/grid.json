@@ -30,7 +30,7 @@
   },
   "risk_model": {
     "slope_limit_deg": 20,
-    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points); Boxwork ridges (+15 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
+    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points); Boxwork ridges (+15 risk points); Rough, uneven ground (+10 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
     "layers_formula": "risk = clamp(slope / limit x 100 + sum(weight x layer / 100), 0, 100)"
   },
   "sources": [
@@ -104,6 +104,19 @@
       "cells_share": 0.0289,
       "zone_share": 0.1215,
       "ridge_km": 26.3
+    },
+    {
+      "id": "rough",
+      "label": "Rough, uneven ground",
+      "bin": "layers/rough.bin",
+      "img": "layers/rough.png",
+      "weight": 10,
+      "effect": "raises risk",
+      "description": "How far the ground departs from a flat plane over 5 m (RMS, from the elevation model): 0 at 10 cm or less, full at 30 cm or more. Catches steps, ledges and bumps that the slope alone misses.",
+      "source": "Computed from the MSL Gale merged DEM (USGS Astrogeology), https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m",
+      "cannot_see": "Features smaller than a few metres are smoothed out in the elevation model: single rocks and small steps are missed. Partly overlaps with slope, since steep ground is often rough.",
+      "cells_share": 0.5784,
+      "median_rms_m": 0.117
     }
   ]
 }

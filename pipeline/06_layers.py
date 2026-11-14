@@ -14,6 +14,7 @@ Layers so far:
   curiosity  Ground the Curiosity rover drove on (MSL traverse, MMGIS). Proven firm ground: lowers risk.
   comm       No line of sight to the habitat's antenna (from the elevation model). Radio shadow: raises risk.
   boxwork    Boxwork ridges found in the HiRISE image (rule based). Ridge crossings: raises risk.
+  rough      Surface roughness: departure from a flat plane over 5 m (elevation model). Raises risk.
 """
 import importlib
 import json
@@ -186,7 +187,49 @@ def layer_boxwork():
     return score, meta
 
 
-LAYERS = [layer_curiosity, layer_comm, layer_boxwork]
+def layer_rough():
+    """0-100 surface roughness: how far the ground departs from a flat plane over a few metres.
+
+    For every 1 m pixel a plane is fitted to the elevation in a ROUGH_WINDOW_M x ROUGH_WINDOW_M window; the layer is
+    the RMS of the residual (metres), so a steady slope scores 0 and only bumps, steps and ledges count. Each 2 m cell
+    keeps its roughest pixel. Score 0 at ROUGH_LOW_M or less (about the elevation model's own noise), 100 at
+    ROUGH_HIGH_M or more.
+    """
+    import rasterio
+
+    with rasterio.open(c.RAW / "aoi_dem_1m.tif") as ds:
+        z = ds.read(1).astype(np.float64)
+        nodata = ds.nodata
+    z[z == nodata] = np.nan
+    z = np.where(np.isnan(z), np.nanmean(z), z)
+    w = c.ROUGH_WINDOW_M
+    mean = lambda a: ndi.uniform_filter(a, w, mode="nearest")
+    yy, xx = np.mgrid[0:z.shape[0], 0:z.shape[1]].astype(np.float64)
+    mz, mx, my = mean(z), mean(xx), mean(yy)
+    var_z = mean(z * z) - mz ** 2
+    var_x, var_y = mean(xx * xx) - mx ** 2, mean(yy * yy) - my ** 2
+    cov_x, cov_y = mean(z * xx) - mz * mx, mean(z * yy) - mz * my
+    rms = np.sqrt(np.clip(var_z - cov_x ** 2 / var_x - cov_y ** 2 / var_y, 0, None))  # residual of the plane fit
+    cell = export.block(rms, c.CELL_M, np.max)
+    score = np.clip((cell - c.ROUGH_LOW_M) / (c.ROUGH_HIGH_M - c.ROUGH_LOW_M) * 100, 0, 100)
+    score = np.floor(score + 0.5).astype(np.uint8)
+    meta = {
+        "id": "rough",
+        "label": "Rough, uneven ground",
+        "effect": "raises risk",
+        "description": (f"How far the ground departs from a flat plane over {w} m (RMS, from the elevation model): "
+                        f"0 at {int(c.ROUGH_LOW_M * 100)} cm or less, full at {int(c.ROUGH_HIGH_M * 100)} cm or more. "
+                        "Catches steps, ledges and bumps that the slope alone misses."),
+        "source": "Computed from the MSL Gale merged DEM (USGS Astrogeology), " + c.DEM_PAGE,
+        "cannot_see": "Features smaller than a few metres are smoothed out in the elevation model: single rocks "
+                      "and small steps are missed. Partly overlaps with slope, since steep ground is often rough.",
+        "colour": (255, 70, 40, 110),  # light: rough ground covers over half the area
+        "median_rms_m": round(float(np.median(cell)), 3),
+    }
+    return score, meta
+
+
+LAYERS = [layer_curiosity, layer_comm, layer_boxwork, layer_rough]
 
 
 # Combination -----------------------------------------------------------------------------------------

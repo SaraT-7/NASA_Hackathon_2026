@@ -27,3 +27,4 @@ Ek katmanlar (`06_layers.py`, ağırlıklar `config.py` → `LAYER_WEIGHTS`):
 | `curiosity` | MSL sürüş izi (MMGIS), ±3 m şerit | −20 (kanıtlanmış zemin) |
 | `comm` | Habitat anteninden görüş hattı, yükseklik modelinden (anten 3 m, giysi 2 m) | +20 (telsiz gölgesi) |
 | `boxwork` | HiRISE görüntüsünde sırt çizgileri (Sato) + çok yönlülük ölçüsü; sırt bandı ~3 m | +15 (sırt aşma) |
+| `rough` | Yükseklik modelinde 5 m pencerede düzlemden sapma (RMS); 10 cm → 0, 30 cm → 100 | +10 (engebe) |
