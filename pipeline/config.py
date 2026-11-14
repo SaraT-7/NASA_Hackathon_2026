@@ -21,6 +21,7 @@ DEM_PAGE = "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m
 ORTHO_COLOR_URL = "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif"
 ORTHO_PAGE = "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm"
 WAYPOINTS_URL = "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json"
+TRAVERSE_URL = "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json"
 
 # AOI, aligned to the 1 m pixel grid of the DEM mosaic -----------------------------------------------
 DEM_LEFT = 8127993.492786024  # easting of the west edge of the DEM mosaic
@@ -57,3 +58,12 @@ def to_lonlat(easting, northing):
     import math
 
     return math.degrees(easting / MARS_RADIUS_M), math.degrees(northing / MARS_RADIUS_M)
+
+
+# Data layers on top of slope (step 6, pipeline/06_layers.py) --------------------------------------------
+# Combined risk = slope / SLOPE_LIMIT_DEG x 100 + sum(weight x layer / 100), clipped to 0..100 (docs/CONTRACT.md).
+# Weights are our planning choice, not measurements; the app shows them as assumptions.
+LAYER_WEIGHTS = {
+    "curiosity": -20,  # ground a rover has already driven on: proven firm, so up to 20 risk points lower
+}
+CURIOSITY_TRACK_HALF_WIDTH_M = 3  # rover is ~3 m wide; +/- 3 m also covers track localisation error
