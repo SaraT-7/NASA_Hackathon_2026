@@ -1,6 +1,6 @@
 // plan/plan.js — Mission Planner screen (Work stream B).
 import { loadGrid, loadJson, fileUrl, mapBounds, xyToLatLng } from '../shared/data.js';
-import { buildRoute, totalEvaS } from '../shared/route.js';
+import { buildRoute, saveRoute, totalEvaS } from '../shared/route.js';
 import { ASSUMPTIONS, formatDuration } from '../shared/walk-model.js';
 import { findMultiStopPath } from './astar.js';
 
@@ -14,6 +14,7 @@ const clearStopsBtn = document.getElementById('clear-stops-btn');
 const sequenceSummaryEl = document.getElementById('sequence-summary');
 const routeAlertEl = document.getElementById('route-alert');
 const routesContainerEl = document.getElementById('routes-container');
+const startWalkBtn = document.getElementById('start-walk-btn');
 const profileSvgEl = document.getElementById('profile-svg');
 const profileRouteLabelEl = document.getElementById('profile-route-label');
 const profileHoverInfoEl = document.getElementById('profile-hover-info');
@@ -197,8 +198,16 @@ function renderRouteCards() {
     empty.className = 'route-empty';
     empty.textContent = 'Select at least one science stop on the left or on the map to compare routes.';
     routesContainerEl.appendChild(empty);
+    startWalkBtn.disabled = true;
+    startWalkBtn.textContent = 'Start walk →';
+    startWalkBtn.className = 'btn-start-walk';
     return;
   }
+
+  const activeRoute = currentRoutes[selectedRouteKind];
+  startWalkBtn.disabled = false;
+  startWalkBtn.className = `btn-start-walk kind-${selectedRouteKind}`;
+  startWalkBtn.textContent = `Start walk (${activeRoute.name}) →`;
 
   const pairs = [
     { route: low_risk, other: shortest },
@@ -790,6 +799,13 @@ async function main() {
     selectedStopIds = [];
     renderStopsUI();
     recomputeRoutes();
+  });
+
+  startWalkBtn.addEventListener('click', () => {
+    const chosenRoute = currentRoutes[selectedRouteKind];
+    if (!chosenRoute) return;
+    saveRoute(chosenRoute);
+    window.location.href = '../walk/';
   });
 
   window.addEventListener('resize', () => {
