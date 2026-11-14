@@ -54,7 +54,7 @@ kodu değişmeden çalışmalı.
 | Dosya | Biçim | İçerik |
 | --- | --- | --- |
 | `grid.json` | JSON | Izgaranın kimliği; aşağıda |
-| `risk.bin` | `uint8`, `rows × cols` bayt, satır satır | `0–100` tahmini risk · `254` veri yok · `255` geçilmez |
+| `risk.bin` | `uint8`, `rows × cols` bayt, satır satır | `0–100` **birleşik** tahmini risk (eğim + ek katmanlar, bkz. `layers`) · `254` veri yok · `255` geçilmez |
 | `slope.bin` | `uint8`, aynı boyut | Eğim, derece (`0–90`) · `255` veri yok |
 | `elevation.bin` | `float32` little-endian, aynı boyut | Yükseklik, metre · `NaN` veri yok |
 | `ortho.png` / `.jpg` | Görsel, en uzun kenar ≤ 4096 px | Uydu görüntüsü (planlama ekranı) |
@@ -64,6 +64,8 @@ kodu değişmeden çalışmalı.
 | `curiosity_path.json` | JSON | Curiosity'nin alan içindeki gerçek yolu |
 | `conditions.json` | JSON | Son ölçülen radyasyon ve hava değerleri |
 | `photos/` | JPG | Duraklara ait Curiosity fotoğrafları |
+| `layers/<id>.bin` | `uint8`, `rows × cols` | Tek bir ek katmanın hücre puanı, `0–100` (bkz. `grid.json` → `layers`) |
+| `layers/<id>.png` | RGBA PNG, ızgarayla aynı en-boy oranı | Aynı katmanın yarı saydam harita görseli |
 | `mock_route.json` | JSON | Deneme rotası (yalnızca `tools/make_mock_route.mjs` üretir) |
 
 Görsellerin gerçek dosya adları `grid.json` içindeki `files` alanından okunur; uzantı `.png` ya da `.jpg` olabilir.
@@ -100,6 +102,19 @@ Görsellerin gerçek dosya adları `grid.json` içindeki `files` alanından okun
 - `georef.sw_lat`, `sw_lon`: güneybatı köşenin gerçek Mars enlem ve boylamı (derece, doğu boylamı). Gerçek veride zorunlu.
 - `sources`: veri güven panelini besler. Gerçek veride her alan dolu olmalı; `cannot_see` o verinin neyi göremediğini bir cümleyle söyler.
 - `risk_model`: riskin nasıl hesaplandığı; arayüzde aynen gösterilir.
+- `layers`: eğimin üstüne eklenen veri katmanları (isteğe bağlı alan; yoksa risk yalnızca eğimdir). Her öğe:
+
+  ```json
+  { "id": "curiosity", "label": "Ground the Curiosity rover drove on", "bin": "layers/curiosity.bin",
+    "img": "layers/curiosity.png", "weight": -20, "effect": "lowers risk",
+    "description": "one sentence", "source": "dataset and link", "cannot_see": "one sentence" }
+  ```
+
+  Birleşik risk: `risk = clamp(round(eğim / 20 × 100 + Σ weight × katman / 100), 0, 100)`.
+  Eğim ≥ 20° olan hücre her durumda `255` (geçilmez) kalır; katmanlar geçilmezliği değiştirmez.
+  `weight` negatifse katman riski düşürür (örneğin rover'ın geçtiği zemin). Ağırlıklar ölçüm değil, bizim seçimimizdir
+  (bölüm 6); arayüzde "assumption" olarak gösterilir. B ve C `risk.bin` dışında bir şey okumak zorunda değildir;
+  katman görselleri ve rota başına katman dökümü isteğe bağlı eklerdir.
 
 ### `stops.json`
 
@@ -212,6 +227,8 @@ Arayüzde göstermek için hazır İngilizce metinler: `ASSUMPTION_NOTES` (aynı
 | `RETURN_FACTOR` | 1,2 | **Güvenlik payı:** planlanan dönüş süresine %20 eklenir. Ölçülmüş bir yavaşlama değildir. | Bizim seçimimiz |
 | `STOP_WORK_S` | 20 dakika | Her bilim durağında çalışma süresi | Bizim seçimimiz |
 | `slope_limit_deg` (`grid.json`) | 20° | Bu eğim ve üzeri geçilmez sayılır | NASA EVA-EXP-0075: giysiyle 20°'ye kadar eğimde yukarı, aşağı ve yanlamasına yürüme |
+
+Ek veri katmanlarının ağırlıkları (`grid.json` → `layers[].weight`) da bizim seçimimizdir; her katmanın kaynağı ve göremedikleri aynı yerde yazılıdır.
 
 NASA kaynakları Ay görevleri (Artemis) için yazılmıştır; Mars için ayrı bir giysi şartnamesi yoktur. Arayüzde ve sunumda böyle belirtilir.
 
