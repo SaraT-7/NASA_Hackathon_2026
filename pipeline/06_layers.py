@@ -12,6 +12,7 @@ Cells at or above the slope limit stay impassable whatever the layers say; layer
 
 Layers so far:
   curiosity  Ground the Curiosity rover drove on (MSL traverse, MMGIS). Proven firm ground: lowers risk.
+  comm       No line of sight to the habitat's antenna (from the elevation model). Radio shadow: raises risk.
 """
 import importlib
 import json
@@ -72,7 +73,60 @@ def layer_curiosity():
     return score.astype(np.uint8), meta
 
 
-LAYERS = [layer_curiosity]
+def layer_comm():
+    """100 where a suit radio has no line of sight to the habitat's antenna, 0 where it has.
+
+    Radial sweep over the 2 m elevation grid: along each ray from the antenna a cell is visible when the line to it
+    clears every cell in between. Mars' curvature lowers distant ground by d^2 / 2R (about 0.6 m at 2 km).
+    """
+    grid = json.loads((c.APP / "grid.json").read_text(encoding="utf-8"))
+    rows, cols, f = grid["rows"], grid["cols"], grid["cell_size_m"]
+    elev = np.fromfile(c.APP / grid["files"]["elevation"], dtype="<f4").reshape(rows, cols).astype(np.float64)
+    hab = json.loads((c.APP / grid["files"]["stops"]).read_text(encoding="utf-8"))["habitat"]
+    r0, c0 = (grid["height_m"] - hab["y"]) / f, hab["x"] / f  # fractional row/col of the habitat
+    z0 = elev[int(r0), int(c0)] + c.HABITAT_ANTENNA_M
+
+    max_r = max(math.hypot(r - r0, cc - c0) for r in (0, rows) for cc in (0, cols))
+    n_rays = int(2 * math.pi * max_r * 1.5)  # dense enough that every cell is crossed by a ray
+    dist = np.arange(1.0, max_r, 0.5)  # cells along each ray
+    d_m = dist * f
+    drop = d_m ** 2 / (2 * c.MARS_RADIUS_M)
+    hits = np.zeros(rows * cols)  # ray samples falling in each cell
+    seen_hits = np.zeros(rows * cols)  # ... of which see the antenna
+    for ang in np.array_split(np.linspace(0, 2 * np.pi, n_rays, endpoint=False), 32):  # chunks keep memory small
+        rr = r0 - np.outer(np.sin(ang), dist)  # rows grow southwards
+        cc = c0 + np.outer(np.cos(ang), dist)
+        inside = (rr >= 0) & (rr < rows) & (cc >= 0) & (cc < cols)
+        ri, ci = np.clip(rr.astype(int), 0, rows - 1), np.clip(cc.astype(int), 0, cols - 1)
+        ground = elev[ri, ci] - drop
+        ground[~inside] = -np.inf
+        horizon = np.maximum.accumulate((ground - z0) / d_m, axis=1)  # steepest terrain angle so far along the ray
+        before = np.concatenate([np.full((len(ang), 1), -np.inf), horizon[:, :-1]], axis=1)
+        seen = (ground + c.SUIT_ANTENNA_M - z0) / d_m >= before
+        idx = ri * cols + ci
+        hits += np.bincount(idx[inside], minlength=rows * cols)
+        seen_hits += np.bincount(idx[inside & seen], minlength=rows * cols)
+    visible = seen_hits >= 0.5 * np.maximum(hits, 1)  # cautious: most rays through the cell must see the antenna
+    visible[int(r0) * cols + int(c0)] = True
+    score = np.where(visible.reshape(rows, cols), 0, 100).astype(np.uint8)
+    meta = {
+        "id": "comm",
+        "label": "No radio line of sight to the habitat",
+        "effect": "raises risk",
+        "description": (f"Cells where terrain blocks the straight line between a suit radio ({c.SUIT_ANTENNA_M} m above "
+                        f"ground) and the habitat antenna ({c.HABITAT_ANTENNA_M} m mast, assumed). Out of sight, the "
+                        "astronaut cannot call the habitat directly."),
+        "source": "Line of sight computed from the MSL Gale merged DEM (USGS Astrogeology), " + c.DEM_PAGE,
+        "cannot_see": "No relay orbiters, rovers or radio bending around ridges; the 2 m elevation grid smooths "
+                      "narrow crests, so a few shadows may be missed.",
+        "colour": (140, 60, 255, 150),
+        "habitat_antenna_m": c.HABITAT_ANTENNA_M,
+        "suit_antenna_m": c.SUIT_ANTENNA_M,
+    }
+    return score, meta
+
+
+LAYERS = [layer_curiosity, layer_comm]
 
 
 # Combination -----------------------------------------------------------------------------------------

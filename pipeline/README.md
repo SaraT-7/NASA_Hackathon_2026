@@ -25,3 +25,4 @@ Ek katmanlar (`06_layers.py`, ağırlıklar `config.py` → `LAYER_WEIGHTS`):
 | Katman | Veri | Ağırlık |
 | --- | --- | --- |
 | `curiosity` | MSL sürüş izi (MMGIS), ±3 m şerit | −20 (kanıtlanmış zemin) |
+| `comm` | Habitat anteninden görüş hattı, yükseklik modelinden (anten 3 m, giysi 2 m) | +20 (telsiz gölgesi) |
