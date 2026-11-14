@@ -22,6 +22,26 @@
   <div class="workspace">
     <aside class="sidebar-left">
       <section class="panel-section">
+        <h2>Map Overlays</h2>
+        <div id="layers-list" class="layers-list">
+          <label class="layer-toggle">
+            <input type="checkbox" id="toggle-risk-layer" checked>
+            <span class="layer-toggle-info">
+              <span class="layer-toggle-title">Estimated risk</span>
+              <span class="layer-toggle-desc">Slope &amp; obstacle cost overlay</span>
+            </span>
+          </label>
+          <label class="layer-toggle">
+            <input type="checkbox" id="toggle-slope-layer">
+            <span class="layer-toggle-info">
+              <span class="layer-toggle-title">Slope (deg)</span>
+              <span class="layer-toggle-desc">Terrain steepness from DEM</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel-section">
         <h2>Start Point</h2>
         <div id="habitat-card" class="stop-item habitat-item">
           <span class="stop-dot habitat-dot">H</span>
@@ -37,7 +57,7 @@
           <h2>Science Stops</h2>
           <button id="clear-stops-btn" class="btn-small" type="button">Clear</button>
         </div>
-        <p class="section-hint">Click stops in the order to visit (or click markers on the map).</p>
+        <p class="section-hint">Click stops in visiting order (or click markers on the map).</p>
         <div id="stops-list" class="stops-list"></div>
       </section>
 
@@ -94,7 +114,7 @@
         <div id="conditions-list" class="conditions-list"></div>
       </section>
 
-      <details id="data-limits-details" class="data-limits-panel" open>
+      <details id="data-limits-details" class="data-limits-panel">
         <summary class="data-limits-summary">
           <span>Data and limits</span>
           <span class="summary-hint">Sources, risk model &amp; assumptions</span>

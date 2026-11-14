@@ -11,6 +11,8 @@ const habitatNameEl = document.getElementById('habitat-name');
 const habitatCoordsEl = document.getElementById('habitat-coords');
 const stopsListEl = document.getElementById('stops-list');
 const clearStopsBtn = document.getElementById('clear-stops-btn');
+const toggleRiskLayerEl = document.getElementById('toggle-risk-layer');
+const toggleSlopeLayerEl = document.getElementById('toggle-slope-layer');
 const sequenceSummaryEl = document.getElementById('sequence-summary');
 const routeAlertEl = document.getElementById('route-alert');
 const routesContainerEl = document.getElementById('routes-container');
@@ -575,12 +577,18 @@ function renderConditionsAndLimits(conditions) {
     const row = document.createElement('div');
     row.className = 'condition-row';
 
-    const left = document.createElement('div');
-    left.className = 'cond-left';
+    const top = document.createElement('div');
+    top.className = 'cond-top';
 
     const label = document.createElement('div');
     label.className = 'cond-label';
     label.textContent = item.label;
+
+    const val = document.createElement('div');
+    val.className = 'cond-value';
+    val.textContent = `${item.value} ${item.unit}`;
+
+    top.append(label, val);
 
     const meta = document.createElement('div');
     meta.className = 'cond-meta';
@@ -595,13 +603,7 @@ function renderConditionsAndLimits(conditions) {
       meta.appendChild(link);
     }
 
-    left.append(label, meta);
-
-    const val = document.createElement('div');
-    val.className = 'cond-value';
-    val.textContent = `${item.value} ${item.unit}`;
-
-    row.append(left, val);
+    row.append(top, meta);
     conditionsListEl.appendChild(row);
   }
 
@@ -747,13 +749,19 @@ async function main() {
   const bounds = mapBounds(grid);
   map = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomSnap: 0.25 });
   L.imageOverlay(fileUrl(grid, 'ortho'), bounds).addTo(map);
-  const overlays = {
-    'Estimated risk': L.imageOverlay(fileUrl(grid, 'risk_img'), bounds, { opacity: 0.7 }),
-    Slope: L.imageOverlay(fileUrl(grid, 'slope_img'), bounds, { opacity: 0.7 }),
-  };
-  overlays['Estimated risk'].addTo(map);
-  L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+  const riskOverlay = L.imageOverlay(fileUrl(grid, 'risk_img'), bounds, { opacity: 0.7 });
+  const slopeOverlay = L.imageOverlay(fileUrl(grid, 'slope_img'), bounds, { opacity: 0.7 });
+  riskOverlay.addTo(map);
   map.fitBounds(bounds);
+
+  toggleRiskLayerEl.addEventListener('change', () => {
+    if (toggleRiskLayerEl.checked) riskOverlay.addTo(map);
+    else riskOverlay.remove();
+  });
+  toggleSlopeLayerEl.addEventListener('change', () => {
+    if (toggleSlopeLayerEl.checked) slopeOverlay.addTo(map);
+    else slopeOverlay.remove();
+  });
 
   routeLayerGroup = L.layerGroup().addTo(map);
 

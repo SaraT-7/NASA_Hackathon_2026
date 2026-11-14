@@ -5,33 +5,33 @@ html, body {
   height: 100%;
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0f141c;
+  background: #0b0f17;
   color: #e6edf3;
   overflow: hidden;
 }
 
 header {
-  height: 44px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 0 14px;
-  background: #161d28;
-  border-bottom: 1px solid #263244;
+  background: #111726;
+  border-bottom: 1px solid #1e293b;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 header a {
   color: #e2a66f;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 header a:hover {
@@ -39,14 +39,14 @@ header a:hover {
 }
 
 .sep {
-  color: #6e7f96;
+  color: #64748b;
 }
 
 .badge-demo {
   background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.45);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 2px 7px;
@@ -54,36 +54,37 @@ header a:hover {
 }
 
 #status {
-  color: #9fb0c6;
-  font-size: 13px;
+  color: #94a3b8;
+  font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Step 7: 1280 x 720 no-scroll layout */
 .workspace {
-  height: calc(100% - 44px);
+  height: calc(100% - 40px);
   display: grid;
-  grid-template-columns: 280px 1fr 440px;
+  grid-template-columns: 256px 1fr 416px;
 }
 
 .sidebar-left {
-  background: #141a24;
-  border-right: 1px solid #263244;
-  padding: 12px;
+  background: #111726;
+  border-right: 1px solid #1e293b;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   overflow-y: auto;
 }
 
 .sidebar-right {
-  background: #141a24;
-  border-left: 1px solid #263244;
-  padding: 12px;
+  background: #111726;
+  border-left: 1px solid #1e293b;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   overflow-y: auto;
 }
 
@@ -96,18 +97,18 @@ header a:hover {
 }
 
 .panel-section h2 {
-  margin: 0 0 8px 0;
-  font-size: 12px;
+  margin: 0 0 6px 0;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #93a6be;
+  color: #94a3b8;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .section-header h2 {
@@ -115,24 +116,24 @@ header a:hover {
 }
 
 .section-sub {
-  font-size: 11px;
-  color: #7c90a8;
+  font-size: 10.5px;
+  color: #64748b;
 }
 
 .section-hint {
-  margin: 0 0 8px 0;
-  font-size: 12px;
-  color: #8496ae;
-  line-height: 1.35;
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  color: #7c90a8;
+  line-height: 1.3;
 }
 
 .btn-small {
-  background: #1f2937;
+  background: #1e293b;
   color: #cbd5e1;
   border: 1px solid #334155;
   border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
+  padding: 2px 7px;
+  font-size: 10.5px;
   cursor: pointer;
 }
 
@@ -141,19 +142,67 @@ header a:hover {
   color: #ffffff;
 }
 
+/* Left panel Map Overlays toggles */
+.layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.layer-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #172033;
+  border: 1px solid #233047;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.layer-toggle:hover {
+  border-color: #3b5275;
+  background: #1b263d;
+}
+
+.layer-toggle input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.layer-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.layer-toggle-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.layer-toggle-desc {
+  font-size: 10.5px;
+  color: #8496ae;
+}
+
 .stops-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .stop-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 8px 10px;
-  background: #1b2330;
-  border: 1px solid #2a3648;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #172033;
+  border: 1px solid #233047;
   border-radius: 6px;
   cursor: pointer;
   user-select: none;
@@ -161,12 +210,12 @@ header a:hover {
 }
 
 .stop-item:hover {
-  border-color: #475b78;
-  background: #202a3a;
+  border-color: #3b5275;
+  background: #1b263d;
 }
 
 .stop-item.selected {
-  background: rgba(56, 189, 248, 0.11);
+  background: rgba(56, 189, 248, 0.12);
   border-color: #38bdf8;
 }
 
@@ -177,17 +226,17 @@ header a:hover {
 }
 
 .stop-dot {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   flex-shrink: 0;
   margin-top: 1px;
-  background: #2d3a4d;
+  background: #283548;
   color: #cbd5e1;
   border: 1px solid #475b78;
 }
@@ -210,43 +259,43 @@ header a:hover {
 }
 
 .stop-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #f0f6fc;
 }
 
 .stop-desc {
-  font-size: 11.5px;
-  color: #9fb0c6;
-  margin-top: 2px;
-  line-height: 1.3;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+  line-height: 1.25;
 }
 
 .stop-meta {
-  font-size: 11px;
-  color: #7c90a8;
-  margin-top: 3px;
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 2px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
 .sequence-summary {
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: #cbd5e1;
-  background: #1b2330;
-  border: 1px solid #2a3648;
+  background: #172033;
+  border: 1px solid #233047;
   border-radius: 6px;
-  padding: 8px 10px;
-  line-height: 1.45;
+  padding: 6px 8px;
+  line-height: 1.35;
 }
 
 .route-alert {
-  margin-top: 8px;
-  padding: 8px 10px;
+  margin-top: 6px;
+  padding: 6px 8px;
   border-radius: 6px;
   background: rgba(239, 68, 68, 0.16);
   border: 1px solid rgba(239, 68, 68, 0.55);
   color: #fca5a5;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
@@ -260,7 +309,7 @@ header a:hover {
 #map {
   height: 100%;
   width: 100%;
-  background: #0b0e13;
+  background: #070a10;
 }
 
 .map-demo-banner {
@@ -274,7 +323,7 @@ header a:hover {
   border: 1px solid rgba(245, 158, 11, 0.55);
   border-radius: 6px;
   padding: 4px 12px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
   pointer-events: none;
@@ -282,16 +331,16 @@ header a:hover {
 
 .map-legend {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
+  bottom: 10px;
+  left: 10px;
   z-index: 500;
-  background: rgba(15, 20, 28, 0.88);
-  border: 1px solid #2b394d;
+  background: rgba(11, 15, 23, 0.9);
+  border: 1px solid #233047;
   border-radius: 6px;
-  padding: 6px 10px;
+  padding: 5px 10px;
   display: flex;
   gap: 14px;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #d6e1ee;
   pointer-events: none;
 }
@@ -336,11 +385,11 @@ header a:hover {
 
 /* Step 4: Elevation profile panel */
 .profile-panel {
-  height: 155px;
+  height: 140px;
   flex-shrink: 0;
-  background: #141a24;
-  border-top: 1px solid #263244;
-  padding: 8px 14px 10px 14px;
+  background: #111726;
+  border-top: 1px solid #1e293b;
+  padding: 6px 12px 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -355,10 +404,10 @@ header a:hover {
 
 .profile-header h2 {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #93a6be;
+  color: #94a3b8;
 }
 
 .profile-sub {
@@ -370,7 +419,7 @@ header a:hover {
 }
 
 .profile-hover {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #8fa2ba;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
@@ -379,8 +428,8 @@ header a:hover {
   flex: 1;
   min-height: 0;
   position: relative;
-  background: #10161f;
-  border: 1px solid #232f40;
+  background: #0b0f17;
+  border: 1px solid #1e293b;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -395,35 +444,35 @@ header a:hover {
 .routes-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .route-empty {
   grid-column: 1 / -1;
-  padding: 14px;
-  background: #1b2330;
+  padding: 12px;
+  background: #172033;
   border: 1px dashed #334155;
   border-radius: 6px;
   color: #8496ae;
-  font-size: 12.5px;
+  font-size: 12px;
   text-align: center;
 }
 
 .route-card {
-  background: #1b2330;
-  border: 2px solid #2a3648;
-  border-radius: 8px;
-  padding: 10px;
+  background: #172033;
+  border: 2px solid #233047;
+  border-radius: 7px;
+  padding: 8px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
 }
 
 .route-card:hover {
-  border-color: #475b78;
-  background: #1f2938;
+  border-color: #3b5275;
+  background: #1b263d;
 }
 
 .route-card.selected.kind-low_risk {
@@ -442,21 +491,21 @@ header a:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
 }
 
 .route-card-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #f0f6fc;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .route-swatch {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -470,11 +519,11 @@ header a:hover {
 }
 
 .route-selected-pill {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 2px 6px;
+  padding: 1.5px 5px;
   border-radius: 4px;
   background: #283548;
   color: #93a6be;
@@ -493,7 +542,7 @@ header a:hover {
 .route-metrics {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
   margin: 0;
 }
 
@@ -501,9 +550,9 @@ header a:hover {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 11.5px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(42, 54, 72, 0.7);
+  font-size: 11px;
+  padding-bottom: 2.5px;
+  border-bottom: 1px solid rgba(35, 48, 71, 0.7);
 }
 
 .metric-row:last-child {
@@ -528,16 +577,16 @@ header a:hover {
 
 .metric-row.total-eva .metric-val {
   color: #fbbf24;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .route-rationale {
-  font-size: 11.5px;
-  line-height: 1.35;
+  font-size: 10.5px;
+  line-height: 1.3;
   color: #cbd5e1;
-  background: rgba(15, 20, 28, 0.55);
+  background: rgba(11, 15, 23, 0.6);
   border-left: 3px solid #475b78;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border-radius: 0 4px 4px 0;
 }
 
@@ -550,29 +599,29 @@ header a:hover {
 }
 
 .eva-limit-warning {
-  padding: 6px 8px;
+  padding: 5px 7px;
   border-radius: 5px;
   background: rgba(239, 68, 68, 0.2);
   border: 1px solid #ef4444;
   color: #fca5a5;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 /* Step 6: Start walk button */
 .start-walk-bar {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .btn-start-walk {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 7px;
+  padding: 8px 12px;
+  border-radius: 6px;
   border: 1px solid #34d399;
   background: linear-gradient(180deg, #10b981 0%, #059669 100%);
   color: #041f16;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -598,7 +647,7 @@ header a:hover {
 }
 
 .btn-start-walk:disabled {
-  background: #1f2937;
+  background: #1e293b;
   border-color: #334155;
   color: #64748b;
   cursor: not-allowed;
@@ -609,45 +658,55 @@ header a:hover {
   background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.45);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 4px;
 }
 
 .conditions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
 }
 
 .condition-row {
-  background: #1b2330;
-  border: 1px solid #2a3648;
+  background: #172033;
+  border: 1px solid #233047;
   border-radius: 6px;
-  padding: 7px 9px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.cond-left {
+  padding: 5px 7px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 2px;
-  min-width: 0;
+}
+
+.cond-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
 }
 
 .cond-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #e6edf3;
+  line-height: 1.2;
+}
+
+.cond-value {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fbbf24;
+  white-space: nowrap;
 }
 
 .cond-meta {
-  font-size: 11px;
-  color: #8496ae;
+  font-size: 9.5px;
+  color: #7c90a8;
+  line-height: 1.2;
 }
 
 .cond-meta a {
@@ -659,33 +718,25 @@ header a:hover {
   text-decoration: underline;
 }
 
-.cond-value {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fbbf24;
-  white-space: nowrap;
-}
-
 .data-limits-panel {
-  background: #1b2330;
-  border: 1px solid #2a3648;
-  border-radius: 8px;
+  background: #172033;
+  border: 1px solid #233047;
+  border-radius: 7px;
   overflow: hidden;
 }
 
 .data-limits-summary {
-  padding: 9px 11px;
+  padding: 7px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #93a6be;
-  background: #18202c;
+  color: #94a3b8;
+  background: #141c2e;
   user-select: none;
 }
 
@@ -694,24 +745,24 @@ header a:hover {
 }
 
 .summary-hint {
-  font-size: 10.5px;
+  font-size: 10px;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 500;
-  color: #7c90a8;
+  color: #64748b;
 }
 
 .data-limits-body {
-  padding: 10px 11px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border-top: 1px solid #2a3648;
+  gap: 8px;
+  border-top: 1px solid #233047;
 }
 
 .limits-block h3 {
-  margin: 0 0 5px 0;
-  font-size: 11px;
+  margin: 0 0 4px 0;
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #9fb0c6;
@@ -720,18 +771,18 @@ header a:hover {
 .sources-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .source-card {
-  background: #141a24;
-  border: 1px solid #253041;
+  background: #111726;
+  border: 1px solid #1e293b;
   border-radius: 5px;
-  padding: 6px 8px;
-  font-size: 11.5px;
+  padding: 5px 7px;
+  font-size: 11px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .source-head {
@@ -748,12 +799,12 @@ header a:hover {
 
 .source-res {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #38bdf8;
 }
 
 .source-meta {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #8fa2ba;
 }
 
@@ -767,39 +818,39 @@ header a:hover {
 }
 
 .source-cannot {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #fca5a5;
   background: rgba(239, 68, 68, 0.1);
   border-left: 2px solid #ef4444;
-  padding: 3px 6px;
+  padding: 2px 5px;
   margin-top: 2px;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 .limits-box {
-  background: #141a24;
-  border: 1px solid #253041;
+  background: #111726;
+  border: 1px solid #1e293b;
   border-radius: 5px;
-  padding: 6px 8px;
-  font-size: 11.5px;
+  padding: 5px 7px;
+  font-size: 11px;
   color: #cbd5e1;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .assumptions-list {
-  background: #141a24;
-  border: 1px solid #253041;
+  background: #111726;
+  border: 1px solid #1e293b;
   border-radius: 5px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .assumption-row {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #9fb0c6;
 }
 
