@@ -29,7 +29,8 @@
   },
   "risk_model": {
     "slope_limit_deg": 20,
-    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet."
+    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
+    "layers_formula": "risk = clamp(slope / limit x 100 + sum(weight x layer / 100), 0, 100)"
   },
   "sources": [
     {
@@ -60,5 +61,20 @@
       "cannot_see": "Only where the rover stopped; the ground between waypoints is not recorded."
     }
   ],
-  "generated": "2026-11-14T16:18:23+00:00"
+  "generated": "2026-11-14T19:29:54+00:00",
+  "layers": [
+    {
+      "id": "curiosity",
+      "label": "Ground the Curiosity rover drove on",
+      "bin": "layers/curiosity.bin",
+      "img": "layers/curiosity.png",
+      "weight": -20,
+      "effect": "lowers risk",
+      "description": "Cells within 3 m of Curiosity's driven track. A 900 kg rover crossed this ground, so it is firm and passable at rover scale.",
+      "source": "MSL traverse, NASA/JPL-Caltech (MMGIS), https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json",
+      "cannot_see": "Only one track across the area; ground off the track is not proven either way.",
+      "cells_share": 0.0072,
+      "km_in_area": 4.11
+    }
+  ]
 }

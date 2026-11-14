@@ -5,3 +5,23 @@
 İş sırası: `docs/tasks/A_DATA.md` · Dosya biçimleri: `docs/CONTRACT.md` · Biçim örneği: `tools/make_mock_data.py`
 
 Ham veri `data/raw/` içine iner ve git'e girmez.
+
+## Çalıştırma sırası
+
+```bash
+python pipeline/01_cut_dem.py          # 1 m yükseklik modeli kesimi
+python pipeline/02_cut_ortho.py        # HiRISE renkli görüntü kesimi
+python pipeline/05_stop_photos.py      # durak fotoğrafları
+python pipeline/03_export_app_data.py  # eğim, risk, görseller, duraklar, Curiosity yolu
+python pipeline/06_layers.py           # ek veri katmanları + birleşik risk (03'ten sonra şart)
+python pipeline/04_conditions.py       # son ölçülen RAD / REMS
+python tools/validate_app_data.py
+node tools/make_mock_route.mjs
+python pipeline/preview_layers.py <katman> <eski_rota.json>   # kontrol görseli, data/work/
+```
+
+Ek katmanlar (`06_layers.py`, ağırlıklar `config.py` → `LAYER_WEIGHTS`):
+
+| Katman | Veri | Ağırlık |
+| --- | --- | --- |
+| `curiosity` | MSL sürüş izi (MMGIS), ±3 m şerit | −20 (kanıtlanmış zemin) |

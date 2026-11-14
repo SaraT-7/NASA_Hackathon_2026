@@ -54,7 +54,8 @@ def main():
     risk = np.clip(np.round(slope / c.SLOPE_LIMIT_DEG * 100), 0, 100).astype(np.uint8)
     risk[slope >= c.SLOPE_LIMIT_DEG] = RISK_IMPASSABLE
     risk[cell_missing] = RISK_NODATA
-    slope_u8 = np.clip(np.round(slope), 0, 90).astype(np.uint8)
+    # Floor, not round: a passable cell (< 20 deg) must never show as "20 deg" on screen.
+    slope_u8 = np.clip(np.floor(slope), 0, 90).astype(np.uint8)
     slope_u8[cell_missing] = SLOPE_NODATA
     elev32 = elev.astype("<f4")
 
@@ -63,6 +64,8 @@ def main():
     risk.tofile(c.APP / "risk.bin")
     slope_u8.tofile(c.APP / "slope.bin")
     elev32.tofile(c.APP / "elevation.bin")
+    c.WORK.mkdir(parents=True, exist_ok=True)
+    np.save(c.WORK / "slope_2m.npy", slope.astype(np.float32))  # exact slope for step 6 (data layers)
 
     rgb = np.moveaxis(np.load(c.WORK / "ortho_rgb_050cm.npy"), 0, -1)
     ortho = Image.fromarray(rgb)
