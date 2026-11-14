@@ -11,8 +11,8 @@ const MAX_FRAME_S = 0.25;
 /** Demo control: simulated seconds per real second. The first entry is the default. */
 const DEMO_SPEEDS = [1, 30, 120];
 
-const RETURN_SLOWER_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
-const RETURN_NOTE = `Same path, walked back. Return pace assumed ${RETURN_SLOWER_PCT} % slower.`;
+const RETURN_MARGIN_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
+const RETURN_NOTE = `Same path, walked back. Planned time includes a ${RETURN_MARGIN_PCT} % safety margin.`;
 
 const el = (id) => document.getElementById(id);
 

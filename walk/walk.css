@@ -48,10 +48,9 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px;
 .tile { padding: 12px 14px; border-radius: 12px; background: var(--panel); min-width: 0; }
 .tile h2 { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .tile p { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
-.tile-next p { display: flex; align-items: baseline; gap: 8px; font-size: 28px; }
-#next-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dist { flex: none; white-space: nowrap; color: var(--accent); }
-.dist::before { content: "· "; color: var(--muted); }
+/* Next stop: the name on one line, the distance left on its own line so long names never push it away. */
+#next-name { font-size: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .dist { margin-top: 2px; font-size: 34px; white-space: nowrap; color: var(--accent); }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* Controls: at most three buttons, sized for gloves (64 px or more), always in the same place. */
