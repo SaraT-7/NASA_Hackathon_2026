@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- plan/ belongs to work stream B. This starter page only proves that the shared modules and the map work. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -11,10 +10,53 @@
 </head>
 <body>
   <header>
-    <a href="../">MarsWalk</a> · Plan
+    <div class="brand">
+      <a href="../">MarsWalk</a>
+      <span class="sep">·</span>
+      <strong>Mission Planner</strong>
+      <span id="demo-badge" class="badge-demo" hidden>DEMO TERRAIN</span>
+    </div>
     <span id="status">Loading…</span>
   </header>
-  <div id="map"></div>
+
+  <div class="workspace">
+    <aside class="sidebar-left">
+      <section class="panel-section">
+        <h2>Start Point</h2>
+        <div id="habitat-card" class="stop-item habitat-item">
+          <span class="stop-dot habitat-dot">H</span>
+          <div class="stop-info">
+            <div id="habitat-name" class="stop-name">Habitat (hypothetical)</div>
+            <div id="habitat-coords" class="stop-meta">Origin &amp; return point</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section stops-section">
+        <div class="section-header">
+          <h2>Science Stops</h2>
+          <button id="clear-stops-btn" class="btn-small" type="button">Clear</button>
+        </div>
+        <p class="section-hint">Click stops in the order to visit (or click markers on the map).</p>
+        <div id="stops-list" class="stops-list"></div>
+      </section>
+
+      <section class="panel-section">
+        <h2>Visiting Sequence</h2>
+        <div id="sequence-summary" class="sequence-summary">Select at least one science stop.</div>
+        <div id="route-alert" class="route-alert" hidden></div>
+      </section>
+    </aside>
+
+    <main class="map-wrap">
+      <div id="map"></div>
+      <div class="map-legend">
+        <span class="legend-item"><span class="legend-line shortest-line"></span> Shortest (weight 0)</span>
+        <span class="legend-item"><span class="legend-line lowrisk-line"></span> Lowest estimated risk (weight 8)</span>
+      </div>
+    </main>
+  </div>
+
   <script src="../shared/vendor/leaflet/leaflet.js"></script>
   <script type="module" src="plan.js"></script>
 </body>
