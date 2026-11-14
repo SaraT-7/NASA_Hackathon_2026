@@ -108,7 +108,7 @@ export function nearestPointIndex(points, x, y) {
 
 /**
  * Seconds needed to walk back to the start (the habitat) along the same path, from a given point.
- * Includes the slower-return assumption.
+ * Includes the return safety margin (ASSUMPTIONS.RETURN_FACTOR).
  */
 export function returnTimeS(route, fromIndex) {
   const p = route.points;
