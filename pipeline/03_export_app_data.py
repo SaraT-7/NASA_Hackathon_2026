@@ -129,6 +129,14 @@ def main():
              "photo": None},
         ]],
     }
+    # Photos chosen in step 5 (pipeline/stop_photos.json); a stop keeps photo = None until its file exists.
+    photo_file = c.REPO / "pipeline" / "stop_photos.json"
+    chosen = json.loads(photo_file.read_text(encoding="utf-8")) if photo_file.exists() else {}
+    for s in stops["stops"]:
+        p = chosen.get(s["id"])
+        if p and (c.APP / "photos" / f"{s['id']}.jpg").exists():
+            s["photo"] = {"file": f"photos/{s['id']}.jpg", "sol": p["sol"], "instrument": p["instrument"],
+                          "credit": p["credit"], "caption": p["caption"], "source_url": p["url"]}
     (c.APP / "stops.json").write_text(json.dumps(stops, indent=2), encoding="utf-8")
 
     sw_lon, sw_lat = c.to_lonlat(c.AOI_WEST, c.AOI_SOUTH)
