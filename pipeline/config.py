@@ -67,6 +67,8 @@ LAYER_WEIGHTS = {
     "curiosity": -20,  # ground a rover has already driven on: proven firm, so up to 20 risk points lower
     "comm": 20,  # no radio line of sight to the habitat: 20 risk points higher
     "boxwork": 15,  # stepping over a boxwork ridge (1-2 m high): 15 risk points higher on the ridge
+    "sky": 0,  # radiation shelter: map only. Over a walk of a few hours the dose difference is tiny, and pulling
+    # routes to the foot of cliffs would add rockfall risk; its use is finding shelter in a solar storm.
 }
 CURIOSITY_TRACK_HALF_WIDTH_M = 3  # rover is ~3 m wide; +/- 3 m also covers track localisation error
 HABITAT_ANTENNA_M = 3  # assumed mast height of the habitat's radio antenna
@@ -74,3 +76,9 @@ SUIT_ANTENNA_M = 2  # suit radio antenna above the ground (helmet / backpack hei
 BOXWORK_RIDGE_THRESHOLD = 0.5  # Sato line strength on the contrast-normalised image that counts as a ridge
 BOXWORK_WINDOW_SIGMA_M = 20  # Gaussian window (sigma, m) for ridge density and direction spread
 BOXWORK_ZONE_THRESHOLD = 0.3  # zone score above which ground counts as boxwork terrain
+SKY_OBSERVER_M = 1.5  # height of the astronaut's body above the ground for the sky view
+SKY_MAX_DIST_M = 800  # terrain this far away is checked for blocking the sky
+SKY_AZIMUTHS = 24  # horizon directions
+SKY_SHELTER_MIN = 0.15  # share of the sky blocked from which a cell counts as sheltered
+RAD_BUTTE_SKY_BLOCKED = 0.19  # MSL RAD at Butte M12, Murray Buttes, sols 1456-1467: sky blocked ...
+RAD_BUTTE_DOSE_DROP = 0.04  # ... and dose rate decrease (Ehresmann et al. 2021, doi:10.1029/2021JE006851)

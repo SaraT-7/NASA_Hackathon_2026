@@ -14,6 +14,7 @@ Layers so far:
   curiosity  Ground the Curiosity rover drove on (MSL traverse, MMGIS). Proven firm ground: lowers risk.
   comm       No line of sight to the habitat's antenna (from the elevation model). Radio shadow: raises risk.
   boxwork    Boxwork ridges found in the HiRISE image (rule based). Ridge crossings: raises risk.
+  sky        Radiation shelter: share of the sky blocked by terrain (elevation model, RAD calibration). Map only.
 """
 import importlib
 import json
@@ -186,7 +187,67 @@ def layer_boxwork():
     return score, meta
 
 
-LAYERS = [layer_curiosity, layer_comm, layer_boxwork]
+def layer_sky():
+    """Radiation shelter: share of the sky that the terrain blocks, where it is at least SKY_SHELTER_MIN.
+
+    For every cell we find the horizon in SKY_AZIMUTHS directions, out to SKY_MAX_DIST_M, seen from SKY_OBSERVER_M
+    above the ground, and add up the solid angle of the upper hemisphere below it (mean of sin(horizon elevation)).
+    Calibration: Curiosity's RAD measured 4 % less dose next to a butte that blocked 19 % of the sky (Ehresmann et al.
+    2021, JGR Planets, doi:10.1029/2021JE006851), so the estimated dose rate is
+    last measured dose x (1 - 0.04 / 0.19 x blocked share). Score = blocked share in percent, 0 below the threshold.
+    Weight 0: shown on the map as a shelter map for solar storms, not used in the route cost (see LAYER_WEIGHTS).
+    """
+    grid = json.loads((c.APP / "grid.json").read_text(encoding="utf-8"))
+    rows, cols, f = grid["rows"], grid["cols"], grid["cell_size_m"]
+    z = np.fromfile(c.APP / grid["files"]["elevation"], dtype="<f4").reshape(rows, cols).astype(np.float64)
+    reach = int(c.SKY_MAX_DIST_M / f)
+    steps = np.unique(np.concatenate([np.arange(1, 20), np.round(np.geomspace(20, reach, 60))]).astype(int))
+    pad = np.full((rows + 2 * reach, cols + 2 * reach), -np.inf)  # outside the area: unknown, counted as open sky
+    pad[reach:reach + rows, reach:reach + cols] = z
+    blocked = np.zeros((rows, cols))
+    for k in range(c.SKY_AZIMUTHS):
+        az = 2 * np.pi * k / c.SKY_AZIMUTHS
+        dr, dc = -np.cos(az), np.sin(az)  # azimuth from north, rows grow southwards
+        horizon = np.zeros((rows, cols))  # tangent of the horizon elevation, at least 0
+        for d in steps:
+            r0, c0 = int(round(reach + dr * d)), int(round(reach + dc * d))
+            np.maximum(horizon, (pad[r0:r0 + rows, c0:c0 + cols] - z - c.SKY_OBSERVER_M) / (d * f), out=horizon)
+        blocked += np.sin(np.arctan(horizon))
+    blocked /= c.SKY_AZIMUTHS
+    score = np.where(blocked >= c.SKY_SHELTER_MIN, np.floor(blocked * 100 + 0.5), 0).astype(np.uint8)
+
+    cond = json.loads((c.APP / grid["files"]["conditions"]).read_text(encoding="utf-8"))
+    dose0 = next(i["value"] for i in cond["items"] if i["id"] == "radiation")
+    drop_per_blocked = c.RAD_BUTTE_DOSE_DROP / c.RAD_BUTTE_SKY_BLOCKED
+    dose = dose0 * (1 - drop_per_blocked * blocked)
+
+    v = np.clip(blocked / 0.35, 0, 1)
+    rgba = np.zeros((rows, cols, 4), dtype=np.uint8)
+    rgba[..., :3] = (40, 200, 255)
+    rgba[..., 3] = np.where(score > 0, 60 + 140 * v, 0).astype(np.uint8)
+    meta = {
+        "id": "sky",
+        "label": "Radiation shelter (terrain blocks the sky)",
+        "effect": "map only, not in the route cost",
+        "description": (f"Share of the sky hidden by the terrain, shown where it is {int(c.SKY_SHELTER_MIN * 100)} % or "
+                        "more. Curiosity's RAD measured 4 % less radiation dose next to a butte that blocked 19 % of the "
+                        f"sky; scaled the same way, the last measured {dose0} mGy/day falls to about "
+                        f"{dose.min():.3f} mGy/day in the most sheltered spot here. Where to wait out a solar storm."),
+        "source": ("Sky view computed from the MSL Gale merged DEM (USGS Astrogeology); dose scaling from MSL RAD "
+                   "measurements at Murray Buttes, Ehresmann et al. 2021, JGR Planets, "
+                   "https://doi.org/10.1029/2021JE006851"),
+        "cannot_see": (f"Terrain more than {c.SKY_MAX_DIST_M} m away or outside the area (such as upper Mount Sharp) "
+                       "is counted as open sky, so shelter is underestimated. The dose scaling comes from a single "
+                       "measured site; solar storm particles are shielded differently from cosmic rays."),
+        "rgba": rgba,
+        "dose_open_mgy_day": dose0,
+        "dose_min_mgy_day": round(float(dose.min()), 4),
+        "max_sky_blocked": round(float(blocked.max()), 3),
+    }
+    return score, meta
+
+
+LAYERS = [layer_curiosity, layer_comm, layer_boxwork, layer_sky]
 
 
 # Combination -----------------------------------------------------------------------------------------

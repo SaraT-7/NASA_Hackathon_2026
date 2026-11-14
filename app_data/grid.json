@@ -30,7 +30,7 @@
   },
   "risk_model": {
     "slope_limit_deg": 20,
-    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points); Boxwork ridges (+15 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
+    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points); Boxwork ridges (+15 risk points); Radiation shelter (terrain blocks the sky) (+0 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
     "layers_formula": "risk = clamp(slope / limit x 100 + sum(weight x layer / 100), 0, 100)"
   },
   "sources": [
@@ -104,6 +104,21 @@
       "cells_share": 0.0289,
       "zone_share": 0.1215,
       "ridge_km": 26.3
+    },
+    {
+      "id": "sky",
+      "label": "Radiation shelter (terrain blocks the sky)",
+      "bin": "layers/sky.bin",
+      "img": "layers/sky.png",
+      "weight": 0,
+      "effect": "map only, not in the route cost",
+      "description": "Share of the sky hidden by the terrain, shown where it is 15 % or more. Curiosity's RAD measured 4 % less radiation dose next to a butte that blocked 19 % of the sky; scaled the same way, the last measured 0.16 mGy/day falls to about 0.143 mGy/day in the most sheltered spot here. Where to wait out a solar storm.",
+      "source": "Sky view computed from the MSL Gale merged DEM (USGS Astrogeology); dose scaling from MSL RAD measurements at Murray Buttes, Ehresmann et al. 2021, JGR Planets, https://doi.org/10.1029/2021JE006851",
+      "cannot_see": "Terrain more than 800 m away or outside the area (such as upper Mount Sharp) is counted as open sky, so shelter is underestimated. The dose scaling comes from a single measured site; solar storm particles are shielded differently from cosmic rays.",
+      "cells_share": 0.3415,
+      "dose_open_mgy_day": 0.16,
+      "dose_min_mgy_day": 0.1427,
+      "max_sky_blocked": 0.513
     }
   ]
 }
