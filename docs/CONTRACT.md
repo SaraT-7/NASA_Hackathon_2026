@@ -111,6 +111,9 @@ Görsellerin gerçek dosya adları `grid.json` içindeki `files` alanından okun
   ```
 
   Birleşik risk: `risk = clamp(round(eğim / 20 × 100 + Σ weight × katman / 100), 0, 100)`.
+  Yalnız eğimden gelen risk ayrıca `files.risk_slope` (`layers/slope_risk.bin`, `risk.bin` ile aynı biçim) dosyasındadır;
+  böylece arayüz katmanları tek tek açıp kapatarak riski yeniden kurabilir: `loadLayers(grid)` + `combineRisk(grid, ids)`
+  (`shared/data.js`). Bütün katmanlar açıkken sonuç `risk.bin` ile birebir aynıdır.
   Eğim ≥ 20° olan hücre her durumda `255` (geçilmez) kalır; katmanlar geçilmezliği değiştirmez.
   `weight` negatifse katman riski düşürür (örneğin rover'ın geçtiği zemin). Ağırlıklar ölçüm değil, bizim seçimimizdir
   (bölüm 6); arayüzde "assumption" olarak gösterilir. B ve C `risk.bin` dışında bir şey okumak zorunda değildir;
@@ -192,7 +195,7 @@ kaydeder. Yürüyüş ekranı `loadRoute()` ile okur. İki ekran arasındaki **t
 
 | Modül | Dışa verdikleri |
 | --- | --- |
-| `shared/data.js` | `loadGrid(base)`, `fileUrl(grid, key)`, `loadJson(grid, key)`, `cellIndex`, `indexToCell`, `cellCenter`, `xyToCell`, `xyToLatLng`, `latLngToXy`, `mapBounds`, `xyToGeo`, `isPassable`, `riskForCost`, sabitler `RISK_NODATA`, `RISK_IMPASSABLE`, `SLOPE_NODATA` |
+| `shared/data.js` | `loadGrid(base)`, `fileUrl(grid, key)`, `loadJson(grid, key)`, `cellIndex`, `indexToCell`, `cellCenter`, `xyToCell`, `xyToLatLng`, `latLngToXy`, `mapBounds`, `xyToGeo`, `isPassable`, `riskForCost`, `loadLayers`, `combineRisk`, sabitler `RISK_NODATA`, `RISK_IMPASSABLE`, `SLOPE_NODATA` |
 | `shared/walk-model.js` | `ASSUMPTIONS`, `ASSUMPTION_NOTES`, `speedMps(grade)`, `stepTimeS(distM, dzM)`, `formatDuration(seconds)` |
 | `shared/route.js` | `buildRoute(grid, cells, opts)`, `saveRoute`, `loadRoute`, `loadMockRoute`, `returnTimeS(route, fromIndex)`, `totalEvaS(route)`, `nearestPointIndex`, `ROUTE_KEY` |
 | `shared/vendor/leaflet/` | Leaflet 1.9.4 (harita kütüphanesi). İnternetten yüklemeyin, buradan kullanın. |
