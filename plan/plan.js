@@ -6,6 +6,7 @@ import { findMultiStopPath } from './astar.js';
 
 const statusEl = document.getElementById('status');
 const demoBadgeEl = document.getElementById('demo-badge');
+const mapDemoBannerEl = document.getElementById('map-demo-banner');
 const habitatNameEl = document.getElementById('habitat-name');
 const habitatCoordsEl = document.getElementById('habitat-coords');
 const stopsListEl = document.getElementById('stops-list');
@@ -16,6 +17,12 @@ const routesContainerEl = document.getElementById('routes-container');
 const profileSvgEl = document.getElementById('profile-svg');
 const profileRouteLabelEl = document.getElementById('profile-route-label');
 const profileHoverInfoEl = document.getElementById('profile-hover-info');
+const conditionsMockTagEl = document.getElementById('conditions-mock-tag');
+const conditionsNoteEl = document.getElementById('conditions-note');
+const conditionsListEl = document.getElementById('conditions-list');
+const sourcesListEl = document.getElementById('sources-list');
+const riskModelBoxEl = document.getElementById('risk-model-box');
+const assumptionsListEl = document.getElementById('assumptions-list');
 
 let grid = null;
 let habitat = null;
@@ -542,6 +549,122 @@ function renderElevationProfile() {
   profileSvgEl.appendChild(overlayRect);
 }
 
+/**
+ * Step 5: Render "Last measured conditions" and "Data and limits" panels.
+ */
+function renderConditionsAndLimits(conditions) {
+  if (conditions && conditions.mock) {
+    conditionsMockTagEl.hidden = false;
+  }
+  if (conditions && conditions.note) {
+    conditionsNoteEl.textContent = conditions.note;
+  }
+
+  conditionsListEl.innerHTML = '';
+  const items = (conditions && Array.isArray(conditions.items)) ? conditions.items : [];
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'condition-row';
+
+    const left = document.createElement('div');
+    left.className = 'cond-left';
+
+    const label = document.createElement('div');
+    label.className = 'cond-label';
+    label.textContent = item.label;
+
+    const meta = document.createElement('div');
+    meta.className = 'cond-meta';
+    meta.textContent = `Last measured: ${item.measured} · ${item.instrument}`;
+    if (item.source_url) {
+      meta.appendChild(document.createTextNode(' · '));
+      const link = document.createElement('a');
+      link.href = item.source_url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Source';
+      meta.appendChild(link);
+    }
+
+    left.append(label, meta);
+
+    const val = document.createElement('div');
+    val.className = 'cond-value';
+    val.textContent = `${item.value} ${item.unit}`;
+
+    row.append(left, val);
+    conditionsListEl.appendChild(row);
+  }
+
+  // Data sources & cannot_see limits
+  sourcesListEl.innerHTML = '';
+  const sources = Array.isArray(grid.meta.sources) ? grid.meta.sources : [];
+  for (const src of sources) {
+    const card = document.createElement('div');
+    card.className = 'source-card';
+
+    const head = document.createElement('div');
+    head.className = 'source-head';
+
+    const layer = document.createElement('span');
+    layer.className = 'source-layer';
+    layer.textContent = src.layer;
+
+    const res = document.createElement('span');
+    res.className = 'source-res';
+    res.textContent = src.resolution_m != null ? `${src.resolution_m} m/px` : '';
+
+    head.append(layer, res);
+
+    const meta = document.createElement('div');
+    meta.className = 'source-meta';
+    meta.textContent = `${src.mission || 'N/A'} · ${src.instrument || 'N/A'} (${src.product_id || 'N/A'})`;
+    if (src.url) {
+      meta.appendChild(document.createTextNode(' · '));
+      const a = document.createElement('a');
+      a.className = 'source-MetaLink';
+      a.href = src.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = 'PDS/Archive';
+      meta.appendChild(a);
+    }
+
+    const cannot = document.createElement('div');
+    cannot.className = 'source-cannot';
+    cannot.textContent = `Cannot resolve: ${src.cannot_see || 'Sub-pixel hazards must be checked visually.'}`;
+
+    card.append(head, meta, cannot);
+    sourcesListEl.appendChild(card);
+  }
+
+  // Risk model
+  const rm = grid.meta.risk_model || {};
+  riskModelBoxEl.textContent =
+    `Slope limit: ${rm.slope_limit_deg != null ? rm.slope_limit_deg + '°' : 'N/A'} · ` +
+    `${rm.description || 'Estimated risk model from grid metadata.'}`;
+
+  // Planning assumptions from shared/walk-model.js
+  assumptionsListEl.innerHTML = '';
+  const assumptionEntries = [
+    { label: 'Suit speed factor (vs. Tobler hiking)', val: `${ASSUMPTIONS.SUIT_SPEED_FACTOR}×` },
+    { label: 'Return walk time factor (fatigue/samples)', val: `${ASSUMPTIONS.RETURN_FACTOR}×` },
+    { label: 'Single Marswalk planning limit', val: formatDuration(ASSUMPTIONS.EVA_LIMIT_S) },
+    { label: 'Science stop work duration', val: `${formatDuration(ASSUMPTIONS.STOP_WORK_S)} / stop` },
+  ];
+  for (const a of assumptionEntries) {
+    const r = document.createElement('div');
+    r.className = 'assumption-row';
+    const l = document.createElement('span');
+    l.textContent = a.label;
+    const v = document.createElement('span');
+    v.className = 'assumption-val';
+    v.textContent = a.val;
+    r.append(l, v);
+    assumptionsListEl.appendChild(r);
+  }
+}
+
 function recomputeRoutes() {
   routeLayerGroup.clearLayers();
   routeAlertEl.hidden = true;
@@ -609,6 +732,7 @@ async function main() {
   grid = await loadGrid('../app_data/');
   if (grid.meta.mock) {
     demoBadgeEl.hidden = false;
+    mapDemoBannerEl.hidden = false;
   }
 
   const bounds = mapBounds(grid);
@@ -624,9 +748,14 @@ async function main() {
 
   routeLayerGroup = L.layerGroup().addTo(map);
 
-  const stopsData = await loadJson(grid, 'stops');
+  const [stopsData, conditionsData] = await Promise.all([
+    loadJson(grid, 'stops'),
+    loadJson(grid, 'conditions'),
+  ]);
   habitat = stopsData.habitat;
   allStops = stopsData.stops;
+
+  renderConditionsAndLimits(conditionsData);
 
   habitatNameEl.textContent = habitat.name;
   habitatCoordsEl.textContent = `Origin & return · (${Math.round(habitat.x)} m E, ${Math.round(habitat.y)} m N)`;

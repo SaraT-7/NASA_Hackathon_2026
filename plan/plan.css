@@ -263,6 +263,23 @@ header a:hover {
   background: #0b0e13;
 }
 
+.map-demo-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  background: rgba(24, 17, 7, 0.9);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
 .map-legend {
   position: absolute;
   bottom: 12px;
@@ -541,4 +558,209 @@ header a:hover {
   font-size: 11px;
   font-weight: 700;
   line-height: 1.3;
+}
+
+/* Step 5: Conditions and Data & Limits panel */
+.tag-mock {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.conditions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-row {
+  background: #1b2330;
+  border: 1px solid #2a3648;
+  border-radius: 6px;
+  padding: 7px 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.cond-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cond-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.cond-meta {
+  font-size: 11px;
+  color: #8496ae;
+}
+
+.cond-meta a {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.cond-meta a:hover {
+  text-decoration: underline;
+}
+
+.cond-value {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+  white-space: nowrap;
+}
+
+.data-limits-panel {
+  background: #1b2330;
+  border: 1px solid #2a3648;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.data-limits-summary {
+  padding: 9px 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #93a6be;
+  background: #18202c;
+  user-select: none;
+}
+
+.data-limits-summary:hover {
+  color: #e6edf3;
+}
+
+.summary-hint {
+  font-size: 10.5px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #7c90a8;
+}
+
+.data-limits-body {
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid #2a3648;
+}
+
+.limits-block h3 {
+  margin: 0 0 5px 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9fb0c6;
+}
+
+.sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.source-card {
+  background: #141a24;
+  border: 1px solid #253041;
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.source-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.source-layer {
+  font-weight: 700;
+  color: #f0f6fc;
+}
+
+.source-res {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  color: #38bdf8;
+}
+
+.source-meta {
+  font-size: 11px;
+  color: #8fa2ba;
+}
+
+.source-MetaLink {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.source-MetaLink:hover {
+  text-decoration: underline;
+}
+
+.source-cannot {
+  font-size: 11px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 2px solid #ef4444;
+  padding: 3px 6px;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.limits-box {
+  background: #141a24;
+  border: 1px solid #253041;
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+
+.assumptions-list {
+  background: #141a24;
+  border: 1px solid #253041;
+  border-radius: 5px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assumption-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9fb0c6;
+}
+
+.assumption-val {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #e6edf3;
+  font-weight: 600;
 }

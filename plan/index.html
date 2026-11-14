@@ -51,6 +51,9 @@
     <main class="center-col">
       <div class="map-wrap">
         <div id="map"></div>
+        <div id="map-demo-banner" class="map-demo-banner" hidden>
+          DEMO TERRAIN · Synthetic test rasters (not real Mars measurements)
+        </div>
         <div class="map-legend">
           <span class="legend-item"><span class="legend-line shortest-line"></span> Shortest (weight 0)</span>
           <span class="legend-item"><span class="legend-line lowrisk-line"></span> Lowest estimated risk (weight 8)</span>
@@ -76,6 +79,36 @@
         </div>
         <div id="routes-container" class="routes-grid"></div>
       </section>
+
+      <section class="panel-section conditions-section">
+        <div class="section-header">
+          <h2>Last measured conditions</h2>
+          <span id="conditions-mock-tag" class="tag-mock" hidden>MOCK</span>
+        </div>
+        <p id="conditions-note" class="section-hint">Last archived measurements, not real time.</p>
+        <div id="conditions-list" class="conditions-list"></div>
+      </section>
+
+      <details id="data-limits-details" class="data-limits-panel" open>
+        <summary class="data-limits-summary">
+          <span>Data and limits</span>
+          <span class="summary-hint">Sources, risk model &amp; assumptions</span>
+        </summary>
+        <div class="data-limits-body">
+          <div class="limits-block">
+            <h3>Data sources &amp; resolution limits</h3>
+            <div id="sources-list" class="sources-list"></div>
+          </div>
+          <div class="limits-block">
+            <h3>Estimated risk model</h3>
+            <div id="risk-model-box" class="limits-box"></div>
+          </div>
+          <div class="limits-block">
+            <h3>Planning assumptions (not NASA specs)</h3>
+            <div id="assumptions-list" class="assumptions-list"></div>
+          </div>
+        </div>
+      </details>
     </aside>
   </div>
 
