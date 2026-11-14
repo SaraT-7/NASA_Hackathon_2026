@@ -1,7 +1,7 @@
 // plan/plan.js — planning screen (work stream B).
 import { loadGrid, loadJson, fileUrl, mapBounds, xyToLatLng } from '../shared/data.js';
 import { buildRoute, saveRoute, totalEvaS } from '../shared/route.js';
-import { ASSUMPTIONS, formatDuration } from '../shared/walk-model.js';
+import { ASSUMPTIONS, ASSUMPTION_NOTES, formatDuration } from '../shared/walk-model.js';
 import { findMultiStopPath } from './astar.js';
 
 const statusEl = document.getElementById('status');
@@ -550,25 +550,40 @@ function renderConditionsAndLimits(conditions) {
     conditionsNoteEl.textContent = conditions.note;
   }
 
+  // Rows that share an instrument and a measurement day sit under one heading,
+  // so the day and the instrument are written once instead of on every row.
   conditionsListEl.replaceChildren();
   const items = conditions && Array.isArray(conditions.items) ? conditions.items : [];
+  const groups = new Map();
   for (const item of items) {
-    const row = h('div', 'cond');
-    const meta = h('span', 'cond-meta', `${item.instrument}, ${item.measured}`);
-    meta.title = `Instrument: ${item.instrument}. Last measured: ${item.measured}.`;
-    if (item.source_url) {
+    const key = `${item.instrument}|${item.measured}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  for (const groupItems of groups.values()) {
+    const first = groupItems[0];
+    const group = h('div', 'cond-group');
+
+    const head = h('div', 'cond-group-head');
+    head.appendChild(h('span', '', `${first.instrument}, ${first.measured}`));
+    const sourceUrl = groupItems.map((it) => it.source_url).find(Boolean);
+    if (sourceUrl) {
       const link = h('a', '', 'Source');
-      link.href = item.source_url;
+      link.href = sourceUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      meta.appendChild(link);
+      head.appendChild(link);
     }
-    row.append(
-      h('span', 'cond-label', item.label),
-      meta,
-      h('span', 'cond-value', `${String(item.value).replace('-', '−')} ${item.unit}`)
-    );
-    conditionsListEl.appendChild(row);
+    group.appendChild(head);
+
+    for (const item of groupItems) {
+      const value = typeof item.value === 'number' ? String(item.value).replace('-', '\u2212') : String(item.value);
+      const row = h('div', 'cond');
+      row.append(h('span', 'cond-label', item.label), h('span', 'cond-value', `${value} ${item.unit || ''}`.trim()));
+      group.appendChild(row);
+      if (item.detail) group.appendChild(h('div', 'cond-detail', item.detail));
+    }
+    conditionsListEl.appendChild(group);
   }
 
   // Data sources and what each one cannot show
@@ -603,21 +618,19 @@ function renderConditionsAndLimits(conditions) {
   const rm = grid.meta.risk_model || {};
   const rmParts = [];
   if (rm.description) rmParts.push(rm.description);
-  if (rm.slope_limit_deg != null) rmParts.push(`Slope limit: ${rm.slope_limit_deg}°.`);
+  // Add the limit only when the description does not already state it.
+  const limitStated = rm.description && new RegExp(`\\b${rm.slope_limit_deg}\\s*(deg|°)`).test(rm.description);
+  if (rm.slope_limit_deg != null && !limitStated) rmParts.push(`Slope limit: ${rm.slope_limit_deg}°.`);
   riskModelBoxEl.textContent = rmParts.join('. ').replace('..', '.') || 'Not described in the grid metadata.';
 
-  // Planning assumptions from shared/walk-model.js
+  // Planning assumptions: labels, values and sources come ready from shared/walk-model.js
   assumptionsListEl.replaceChildren();
-  const assumptionEntries = [
-    { label: 'Suited walking speed, share of unsuited hiking speed', val: `${ASSUMPTIONS.SUIT_SPEED_FACTOR}×` },
-    { label: 'Walk back takes longer (fatigue, samples)', val: `${ASSUMPTIONS.RETURN_FACTOR}×` },
-    { label: 'Planning limit for one Marswalk', val: formatDuration(ASSUMPTIONS.EVA_LIMIT_S) },
-    { label: 'Work time at each stop', val: formatDuration(ASSUMPTIONS.STOP_WORK_S) },
-  ];
-  for (const a of assumptionEntries) {
-    const pair = h('div', 'pair');
-    pair.append(h('dt', '', a.label), h('dd', '', a.val));
-    assumptionsListEl.appendChild(pair);
+  for (const note of ASSUMPTION_NOTES) {
+    const block = h('div', 'source');
+    const head = h('div', 'source-head');
+    head.append(h('span', '', note.label), h('span', '', note.value));
+    block.append(head, h('div', 'source-meta', note.source));
+    assumptionsListEl.appendChild(block);
   }
 }
 

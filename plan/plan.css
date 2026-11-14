@@ -550,27 +550,39 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 
 /* Last measured conditions */
 
-.cond {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 84px;
-  align-items: baseline;
-  column-gap: 12px;
-  padding: 4px 0;
+.cond-group {
+  padding: 6px 0;
   border-top: 1px solid var(--line);
 }
 
-.cond-meta {
+.cond-group-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
   color: var(--faint);
   font-size: 12px;
-  white-space: nowrap;
 }
 
-.cond-meta a { margin-left: 6px; }
+.cond-group-head a { flex: none; }
+
+.cond {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
 
 .cond-value {
   font-weight: 600;
-  text-align: right;
   white-space: nowrap;
+}
+
+.cond-detail {
+  padding-bottom: 2px;
+  color: var(--faint);
+  font-size: 12px;
 }
 
 /* Data and limits */
@@ -605,22 +617,13 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   font-size: 13px;
 }
 
-.source-meta,
-.source-limit { color: var(--muted); }
-
-.pairs { margin-top: 4px; }
-
-.pair {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 0;
-  border-top: 1px solid var(--line);
-  font-size: 12px;
+.source-head > span:last-child {
+  flex: none;
+  font-weight: 600;
 }
 
-.pair dt { color: var(--muted); }
-.pair dd { font-weight: 600; white-space: nowrap; }
+.source-meta,
+.source-limit { color: var(--muted); }
 
 /* Narrow windows: stack the panels and let the page scroll. */
 @media (max-width: 1000px) {
