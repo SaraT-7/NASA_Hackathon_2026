@@ -31,12 +31,13 @@ header a { color: var(--accent); text-decoration: none; }
 
 main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; }
 
-/* Status strip: the one answer the astronaut needs. Colour and words always change together. */
+/* Status strip: the one answer the astronaut needs. Colour and words always change together.
+   It runs edge to edge with square corners so it reads as a sign, not as a button to press. */
 .status {
   flex: none; display: flex; align-items: center; justify-content: center;
-  min-height: 64px; padding: 6px 12px; border-radius: 12px; text-align: center;
+  min-height: 64px; margin: 0 -12px; padding: 6px 12px; text-align: center;
   font-size: 28px; font-weight: 800; letter-spacing: 0.04em;
-  background: #4a3c33; color: var(--text);
+  background: #4a3c33; color: var(--text); user-select: none;
 }
 .status[data-status="go"] { background: #2fc25b; color: #04210d; }
 .status[data-status="soon"] { background: #ffd21f; color: #2b2100; }

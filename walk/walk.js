@@ -51,8 +51,7 @@ function drawControls(s) {
   const headingHome = s.phase === PHASE.RETURNING || s.phase === PHASE.DONE;
 
   const run = el('btn-run');
-  setText(run, s.phase === PHASE.READY ? 'Start' : s.phase === PHASE.DONE ? 'Walk complete' : s.running ? 'Pause' : 'Resume');
-  run.disabled = s.phase === PHASE.DONE;
+  setText(run, s.phase === PHASE.READY ? 'Start' : s.phase === PHASE.DONE ? 'New walk' : s.running ? 'Pause' : 'Resume');
 
   // On the way home these two are removed, not greyed out: there is nothing left to decide.
   el('btn-done').hidden = headingHome;
@@ -62,7 +61,7 @@ function drawControls(s) {
 
   el('return-info').hidden = !headingHome;
   setText(el('return-title'), s.phase === PHASE.DONE ? 'Back at the habitat' : 'Returning to the habitat');
-  setText(el('return-note'), s.phase === PHASE.DONE ? 'Marswalk complete. Reload the page to walk again.' : RETURN_NOTE);
+  setText(el('return-note'), s.phase === PHASE.DONE ? 'Marswalk complete.' : RETURN_NOTE);
 }
 
 function draw() {
@@ -85,6 +84,7 @@ function bindControls() {
   el('btn-run').addEventListener('click', () => {
     const s = walk.snapshot();
     if (s.phase === PHASE.READY) walk.start();
+    else if (s.phase === PHASE.DONE) walk = createWalk(route); // "New walk": back to the start, same route
     else if (s.running) walk.pause();
     else walk.resume();
     draw();
