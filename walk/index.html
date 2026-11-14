@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- walk/ belongs to work stream C. Step 1: the page shows the walk state from walk/state.js. -->
+<!-- walk/ belongs to work stream C: the screen the astronaut reads while walking. See docs/tasks/C_WALK.md. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -9,11 +9,23 @@
   <link rel="stylesheet" href="walk.css">
 </head>
 <body>
-  <header><a href="../">MarsWalk</a> · Walk <span id="badge"></span></header>
+  <header>
+    <span class="title"><a href="../">MarsWalk</a> · Walk</span>
+    <span class="tags">
+      <span id="badge" class="tag tag-demo"></span>
+      <span class="tag tag-sim">SIMULATED POSITION</span>
+    </span>
+  </header>
   <main>
-    <section class="tile"><h2>Next stop</h2><p id="next">…</p></section>
-    <section class="tile"><h2>Walk state</h2><p id="phase">…</p></section>
-    <section class="tile"><h2>Elapsed</h2><p id="elapsed">…</p></section>
+    <div id="status" class="status" role="status" data-status="loading">…</div>
+    <section class="tile tile-next">
+      <h2>Next stop</h2>
+      <p><span id="next-name">…</span><span id="next-dist" class="dist"></span></p>
+    </section>
+    <div class="pair">
+      <section class="tile"><h2>Elapsed</h2><p id="elapsed">…</p></section>
+      <section class="tile"><h2 id="limit-label">Turn back in</h2><p id="limit">…</p></section>
+    </div>
   </main>
   <script type="module" src="walk.js"></script>
 </body>
