@@ -95,5 +95,39 @@ Seçili rota için `points[].dist` – `points[].elev` grafiği (SVG ya da canva
 
 ## Çekirdekten sonra (pazar 10:00 – 13:00, sırayla)
 
-1. Curiosity'nin gerçek yolunu katman olarak göster (`curiosity_path`) ve rotamızla ne kadar örtüştüğünü ölç.
-2. "Report new obstacle" düğmesi: haritada işaretlenen hücreler geçilmez olur, rota yeniden hesaplanır.
+1. **Veri katmanı filtreleri** (en önemlisi; projenin yeniliği bu). Aşağıda ayrıntı.
+2. Curiosity'nin gerçek yolunu katman olarak göster (`curiosity_path`) ve rotamızla ne kadar örtüştüğünü ölç.
+3. "Report new obstacle" düğmesi: haritada işaretlenen hücreler geçilmez olur, rota yeniden hesaplanır.
+
+### Veri katmanı filtreleri
+
+Rota artık yalnız eğime göre değil, birden fazla NASA verisine göre hesaplanıyor. Her veri ayrı bir katman
+(`grid.json` → `layers`, sözleşme bölüm 3). Kullanıcı her katmanı ayrı açıp kapatabilmeli; rota yalnız açık
+katmanlara göre yeniden hesaplanmalı. Hesap `shared/data.js` içinde hazır, senin işin yalnız arayüz.
+
+```js
+import { loadGrid, loadLayers, combineRisk } from '../shared/data.js';
+const grid = await loadGrid('../app_data/');
+const layers = await loadLayers(grid);            // grid.meta.layers; veri katmansızsa boş liste
+// kutucuk değişince:
+grid.risk = combineRisk(grid, seciliIdler);        // ~10 ms; sonra iki rotayı yeniden hesapla (findMultiStopPath)
+```
+
+- **"Map layers" paneli:** mevcut "Estimated risk" ve "Slope" kutucuklarının altına, `layers` listesindeki
+  her öğe için bir kutucuk. Varsayılan: hepsi açık. Her satırda `label`, etkisi (`effect`: "lowers risk" /
+  "raises risk") ve ağırlık "assumption" etiketiyle (örn. "−20 risk points · assumption").
+  `description` ve `cannot_see` küçük yazı ya da açılır bilgi olarak.
+- **Kutucuk açık:** katmanın görseli (`fileUrl` yerine `grid.base + layer.img`) haritada yarı saydam görünür
+  ve katman rotaya girer. **Kapalı:** ikisi de çıkar. Değişince `grid.risk = combineRisk(...)` ve iki rota yeniden.
+- **"Estimated risk" görseli** (`risk.png`) bütün katmanlar açıkkenki birleşik risktir. Bir katman kapalıyken
+  ya bu görseli soluklaştır ya da yanına küçük bir not yaz: "Risk map shows all layers".
+- **"Data and limits" paneli:** `layers` listesini de göster (kaynak, `cannot_see`). `risk_model.description`
+  zaten katmanları anlatıyor.
+- **Rota kartı (vakit kalırsa):** açık her katman için bir satır, örn. "On Curiosity track: 36 %". Rota hücreleri
+  `cells` ve `grid.layerScores[id][hücre] > 0` ile sayılır.
+- **"Start walk":** rota o anki `grid.risk` ile kurulduğu için ekstra iş yok; yürüyüş ekranı rotayı olduğu gibi okur.
+
+Kabul: bütün kutucuklar açıkken rotalar bugünküyle aynı (`combineRisk` = `risk.bin`); bir katmanı kapatınca
+"Lowest estimated risk" rotası görünür biçimde değişiyor; konsolda hata yok; PR yalnızca `plan/` yollarını içeriyor.
+Katmanlar A iş kolundan sırayla ekleniyor (şu an `curiosity`; sırada `comm`, `boxwork`); kodun katman sayısından
+ve adlarından bağımsız olsun, hepsini `grid.meta.layers`'tan oku.
