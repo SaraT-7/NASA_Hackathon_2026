@@ -25,3 +25,6 @@ Ek katmanlar (`06_layers.py`, ağırlıklar `config.py` → `LAYER_WEIGHTS`):
 | Katman | Veri | Ağırlık |
 | --- | --- | --- |
 | `curiosity` | MSL sürüş izi (MMGIS), ±3 m şerit | −20 (kanıtlanmış zemin) |
+| `comm` | Habitat anteninden görüş hattı, yükseklik modelinden (anten 3 m, giysi 2 m) | +20 (telsiz gölgesi) |
+| `boxwork` | HiRISE görüntüsünde sırt çizgileri (Sato) + çok yönlülük ölçüsü; sırt bandı ~3 m | +15 (sırt aşma) |
+| `sky` | Yükseklik modelinden kapalı gök oranı; doz ölçeği MSL RAD Murray Buttes ölçümü (gök %19 kapalı → doz %4 düşük) | 0 (yalnız harita, sığınak) |
