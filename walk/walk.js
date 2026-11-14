@@ -8,6 +8,9 @@ import { readout } from './status.js';
 /** Longest step of real time one frame may add, so a stalled tab cannot jump the walk forward. */
 const MAX_FRAME_S = 0.25;
 
+/** Demo control: simulated seconds per real second. The first entry is the default. */
+const DEMO_SPEEDS = [1, 30, 120];
+
 const RETURN_SLOWER_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
 const RETURN_NOTE = `Same path, walked back. Return pace assumed ${RETURN_SLOWER_PCT} % slower.`;
 
@@ -15,7 +18,7 @@ const el = (id) => document.getElementById(id);
 
 let route = null;
 let walk = null;
-let speed = 1; // simulated seconds per real second
+let speed = DEMO_SPEEDS[0];
 let lastFrameMs = null;
 
 function setText(node, text) {
@@ -96,6 +99,25 @@ function bindControls() {
   });
 }
 
+/** Small speed switch for demos. It is not one of the astronaut's three buttons. */
+function buildSpeedControl() {
+  const group = el('speed');
+  for (const value of DEMO_SPEEDS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'speed-btn';
+    button.textContent = `×${value}`;
+    button.setAttribute('aria-pressed', String(value === speed));
+    button.addEventListener('click', () => {
+      speed = value;
+      for (const other of group.querySelectorAll('.speed-btn')) {
+        other.setAttribute('aria-pressed', String(other === button));
+      }
+    });
+    group.append(button);
+  }
+}
+
 async function main() {
   route = loadRoute();
   let demo = false;
@@ -107,6 +129,7 @@ async function main() {
 
   walk = createWalk(route);
   bindControls();
+  buildSpeedControl();
   requestAnimationFrame(frame);
 }
 
