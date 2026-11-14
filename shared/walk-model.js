@@ -2,16 +2,53 @@
 // How fast a suited astronaut walks. Both the planner (plan/) and the walk view (walk/) use it,
 // so the two screens always show the same times.
 
+// Tobler's hiking function gives about 5.0 km/h for an unsuited walker on level ground.
+const TOBLER_FLAT_KMH = 6 * Math.exp(-3.5 * 0.05);
+
 /**
- * Every number here is an ASSUMPTION, not a NASA specification. Show them as assumptions in the UI.
- * Change them only here, with the team's agreement, and cite the source in docs/CONTRACT.md.
+ * Planning assumptions. They are not measurements; show them as assumptions in the UI.
+ * Sources are listed in ASSUMPTION_NOTES below and in docs/CONTRACT.md, section 6.
+ * Change them only here, with the team's agreement.
  */
 export const ASSUMPTIONS = {
-  SUIT_SPEED_FACTOR: 0.5, // suited walking speed as a fraction of unsuited hiking speed
-  RETURN_FACTOR: 1.2, // the walk back is slower: fatigue and carried samples
-  EVA_LIMIT_S: 6 * 3600, // planning limit for one Marswalk
-  STOP_WORK_S: 20 * 60, // time spent working at each science stop
+  FLAT_SPEED_KMH: 2.0, // suited walking speed on level ground (NASA Artemis planning value)
+  SUIT_SPEED_FACTOR: 2.0 / TOBLER_FLAT_KMH, // derived from FLAT_SPEED_KMH: fraction of unsuited hiking speed, about 0.4
+  RETURN_FACTOR: 1.2, // safety margin: the planned walk back is given 20 % more time
+  EVA_LIMIT_S: 6 * 3600, // planning limit for one Marswalk (NASA xEVA: 6 +/- 2 hours)
+  STOP_WORK_S: 20 * 60, // time spent working at each science stop (our choice)
 };
+
+/** The same assumptions as text for a "Data and limits" panel. */
+export const ASSUMPTION_NOTES = [
+  {
+    key: 'FLAT_SPEED_KMH',
+    label: 'Walking speed on level ground',
+    value: '2.0 km/h',
+    source:
+      'Planning value from a NASA study of Artemis walking range (NTRS 20210026296). Apollo planners assumed 2.7 km/h ' +
+      "for walk-backs longer than an hour. On slopes the speed follows Tobler's hiking function.",
+  },
+  {
+    key: 'EVA_LIMIT_S',
+    label: 'Longest Marswalk',
+    value: '6 h',
+    source:
+      'NASA Exploration EVA concept of operations summary (EVA-EXP-0075): EVAs of up to 8 hours, 6 ± 2 hours. ' +
+      'Written for lunar missions.',
+  },
+  {
+    key: 'RETURN_FACTOR',
+    label: 'Safety margin on the walk back',
+    value: '+20 %',
+    source: 'Our choice. Extra time added to the planned return; it is not a measured slowdown.',
+  },
+  {
+    key: 'STOP_WORK_S',
+    label: 'Work time at each science stop',
+    value: '20 min',
+    source: 'Our choice.',
+  },
+];
 
 /**
  * Walking speed in m/s on a given grade, from Tobler's hiking function scaled for a suit.
