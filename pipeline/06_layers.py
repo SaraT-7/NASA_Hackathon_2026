@@ -119,7 +119,7 @@ def layer_comm():
         "source": "Line of sight computed from the MSL Gale merged DEM (USGS Astrogeology), " + c.DEM_PAGE,
         "cannot_see": "No relay orbiters, rovers or radio bending around ridges; the 2 m elevation grid smooths "
                       "narrow crests, so a few shadows may be missed.",
-        "colour": (140, 60, 255, 150),
+        "colour": (140, 60, 255, 75),  # light: the shadow covers most of the area, the ground must stay visible
         "habitat_antenna_m": c.HABITAT_ANTENNA_M,
         "suit_antenna_m": c.SUIT_ANTENNA_M,
     }
