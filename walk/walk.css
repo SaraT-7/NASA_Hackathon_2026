@@ -52,3 +52,21 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px;
 .dist { flex: none; white-space: nowrap; color: var(--accent); }
 .dist::before { content: "· "; color: var(--muted); }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Controls: at most three buttons, sized for gloves (64 px or more), always in the same place. */
+.controls { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.btn {
+  min-height: 64px; width: 100%; padding: 8px 16px; border: 3px solid transparent; border-radius: 14px;
+  font: inherit; font-size: 24px; font-weight: 800; letter-spacing: 0.02em;
+  touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent; cursor: pointer;
+}
+.btn[hidden] { display: none; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.btn-run { background: var(--text); color: var(--bg); }
+.btn-done { background: var(--accent); color: #241404; }
+.btn-back { background: transparent; color: var(--text); border-color: #ff8a80; }
+.return-info { min-height: 138px; display: flex; flex-direction: column; justify-content: center; border: 3px solid #4da3ff; }
+.return-info[hidden] { display: none; }
+.return-info h2 { font-size: 22px; font-weight: 800; color: var(--text); }
+.return-info p { font-size: 16px; font-weight: 500; color: var(--muted); }

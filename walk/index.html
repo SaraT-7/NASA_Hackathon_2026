@@ -26,6 +26,15 @@
       <section class="tile"><h2>Elapsed</h2><p id="elapsed">…</p></section>
       <section class="tile"><h2 id="limit-label">Turn back in</h2><p id="limit">…</p></section>
     </div>
+    <div class="controls">
+      <button id="btn-run" class="btn btn-run" type="button">Start</button>
+      <button id="btn-done" class="btn btn-done" type="button" disabled>Done here</button>
+      <button id="btn-back" class="btn btn-back" type="button" disabled>Turn back</button>
+      <section id="return-info" class="tile return-info" hidden>
+        <h2 id="return-title">Returning to the habitat</h2>
+        <p id="return-note"></p>
+      </section>
+    </div>
   </main>
   <script type="module" src="walk.js"></script>
 </body>

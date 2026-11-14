@@ -1,36 +1,103 @@
 // walk/walk.js — the walk screen, for work stream C. It only draws what walk/state.js and walk/status.js report.
 // See docs/tasks/C_WALK.md for the order of work.
 import { loadRoute, loadMockRoute } from '../shared/route.js';
-import { formatDuration } from '../shared/walk-model.js';
-import { createWalk } from './state.js';
+import { ASSUMPTIONS, formatDuration } from '../shared/walk-model.js';
+import { createWalk, PHASE } from './state.js';
 import { readout } from './status.js';
+
+/** Longest step of real time one frame may add, so a stalled tab cannot jump the walk forward. */
+const MAX_FRAME_S = 0.25;
+
+const RETURN_SLOWER_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
+const RETURN_NOTE = `Same path, walked back. Return pace assumed ${RETURN_SLOWER_PCT} % slower.`;
 
 const el = (id) => document.getElementById(id);
 
-function render(route, s) {
+let route = null;
+let walk = null;
+let speed = 1; // simulated seconds per real second
+let lastFrameMs = null;
+
+function setText(node, text) {
+  if (node.textContent !== text) node.textContent = text;
+}
+
+function drawIndicators(s) {
   const r = readout(route, s);
 
-  el('status').textContent = r.status.label;
+  setText(el('status'), r.status.label);
   el('status').dataset.status = r.status.key;
 
-  el('next-name').textContent = s.nextStop ? s.nextStop.name : 'Habitat';
-  el('next-dist').textContent = `${Math.round(s.distanceToNextM)} m`;
-  el('elapsed').textContent = formatDuration(s.elapsedS);
+  setText(el('next-name'), s.nextStop ? s.nextStop.name : 'Habitat');
+  setText(el('next-dist'), `${Math.round(s.distanceToNextM)} m`);
+  setText(el('elapsed'), formatDuration(s.elapsedS));
 
   if (r.habitatInS != null) {
-    el('limit-label').textContent = 'Habitat in';
-    el('limit').textContent = formatDuration(r.habitatInS);
+    setText(el('limit-label'), 'Habitat in');
+    setText(el('limit'), formatDuration(r.habitatInS));
   } else if (r.turnBackInS < 0) {
-    el('limit-label').textContent = 'Overdue by';
-    el('limit').textContent = formatDuration(-r.turnBackInS);
+    setText(el('limit-label'), 'Overdue by');
+    setText(el('limit'), formatDuration(-r.turnBackInS));
   } else {
-    el('limit-label').textContent = 'Turn back in';
-    el('limit').textContent = formatDuration(r.turnBackInS);
+    setText(el('limit-label'), 'Turn back in');
+    setText(el('limit'), formatDuration(r.turnBackInS));
   }
 }
 
+function drawControls(s) {
+  const headingHome = s.phase === PHASE.RETURNING || s.phase === PHASE.DONE;
+
+  const run = el('btn-run');
+  setText(run, s.phase === PHASE.READY ? 'Start' : s.phase === PHASE.DONE ? 'Walk complete' : s.running ? 'Pause' : 'Resume');
+  run.disabled = s.phase === PHASE.DONE;
+
+  // On the way home these two are removed, not greyed out: there is nothing left to decide.
+  el('btn-done').hidden = headingHome;
+  el('btn-back').hidden = headingHome;
+  el('btn-done').disabled = s.phase !== PHASE.AT_STOP;
+  el('btn-back').disabled = s.phase !== PHASE.WALKING && s.phase !== PHASE.AT_STOP;
+
+  el('return-info').hidden = !headingHome;
+  setText(el('return-title'), s.phase === PHASE.DONE ? 'Back at the habitat' : 'Returning to the habitat');
+  setText(el('return-note'), s.phase === PHASE.DONE ? 'Marswalk complete. Reload the page to walk again.' : RETURN_NOTE);
+}
+
+function draw() {
+  const s = walk.snapshot();
+  drawIndicators(s);
+  drawControls(s);
+}
+
+function frame(nowMs) {
+  if (lastFrameMs != null) {
+    const dtS = Math.min((nowMs - lastFrameMs) / 1000, MAX_FRAME_S);
+    walk.tick(dtS * speed);
+  }
+  lastFrameMs = nowMs;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+function bindControls() {
+  el('btn-run').addEventListener('click', () => {
+    const s = walk.snapshot();
+    if (s.phase === PHASE.READY) walk.start();
+    else if (s.running) walk.pause();
+    else walk.resume();
+    draw();
+  });
+  el('btn-done').addEventListener('click', () => {
+    walk.doneHere();
+    draw();
+  });
+  el('btn-back').addEventListener('click', () => {
+    walk.turnBack();
+    draw();
+  });
+}
+
 async function main() {
-  let route = loadRoute();
+  route = loadRoute();
   let demo = false;
   if (!route) {
     route = await loadMockRoute('../app_data/');
@@ -38,8 +105,9 @@ async function main() {
   }
   el('badge').textContent = demo ? 'DEMO ROUTE' : route.mock ? 'DEMO TERRAIN' : '';
 
-  const walk = createWalk(route);
-  render(route, walk.snapshot());
+  walk = createWalk(route);
+  bindControls();
+  requestAnimationFrame(frame);
 }
 
 main().catch((err) => {
