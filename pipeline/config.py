@@ -66,7 +66,11 @@ def to_lonlat(easting, northing):
 LAYER_WEIGHTS = {
     "curiosity": -20,  # ground a rover has already driven on: proven firm, so up to 20 risk points lower
     "comm": 20,  # no radio line of sight to the habitat: 20 risk points higher
+    "boxwork": 15,  # stepping over a boxwork ridge (1-2 m high): 15 risk points higher on the ridge
 }
 CURIOSITY_TRACK_HALF_WIDTH_M = 3  # rover is ~3 m wide; +/- 3 m also covers track localisation error
 HABITAT_ANTENNA_M = 3  # assumed mast height of the habitat's radio antenna
 SUIT_ANTENNA_M = 2  # suit radio antenna above the ground (helmet / backpack height)
+BOXWORK_RIDGE_THRESHOLD = 0.5  # Sato line strength on the contrast-normalised image that counts as a ridge
+BOXWORK_WINDOW_SIGMA_M = 20  # Gaussian window (sigma, m) for ridge density and direction spread
+BOXWORK_ZONE_THRESHOLD = 0.3  # zone score above which ground counts as boxwork terrain

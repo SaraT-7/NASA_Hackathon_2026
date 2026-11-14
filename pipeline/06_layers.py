@@ -13,6 +13,7 @@ Cells at or above the slope limit stay impassable whatever the layers say; layer
 Layers so far:
   curiosity  Ground the Curiosity rover drove on (MSL traverse, MMGIS). Proven firm ground: lowers risk.
   comm       No line of sight to the habitat's antenna (from the elevation model). Radio shadow: raises risk.
+  boxwork    Boxwork ridges found in the HiRISE image (rule based). Ridge crossings: raises risk.
 """
 import importlib
 import json
@@ -22,6 +23,7 @@ import urllib.request
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage as ndi
 from scipy.ndimage import distance_transform_edt
 
 import config as c
@@ -126,7 +128,65 @@ def layer_comm():
     return score, meta
 
 
-LAYERS = [layer_curiosity, layer_comm]
+def layer_boxwork():
+    """100 on boxwork ridges, 0 elsewhere. Rule based, from the 0.5 m HiRISE image (the 1 m elevation model is too
+    smooth to resolve 1-2 m high ridges).
+
+    1. Ridge lines: Sato line filter on the brightness, normalised for local contrast; thinned to 1 px centre lines.
+    2. Boxwork vs layer edges: boxwork ridges cross in many directions and close into cells, while the edges of rock
+       layers run parallel. Within ~40 m windows we measure ridge density and how aligned the ridge directions are
+       (mean resultant length of the doubled angles, 0 = all directions, 1 = parallel). Dense and multi-directional
+       = boxwork zone.
+    3. The layer is the ridge band (about 3 m wide) inside boxwork zones.
+    """
+    from skimage.feature import hessian_matrix
+    from skimage.filters import sato
+    from skimage.morphology import remove_small_objects, skeletonize
+
+    rgb = np.load(c.WORK / "ortho_rgb_050cm.npy").astype(np.float64)
+    gray = export.block(rgb.mean(axis=0), 2, np.mean)  # 0.5 m -> 1 m
+    hp = gray - ndi.gaussian_filter(gray, 20)
+    g = hp / (ndi.gaussian_filter(np.abs(hp), 20) + 1)  # local contrast, so dusty and dark ground compare
+    ridge = sato(g, sigmas=[1.5, 2.5, 3.5], black_ridges=False)
+    hrr, hrc, hcc = hessian_matrix(g, sigma=2.5, order="rc", use_gaussian_derivatives=False)
+    theta = 0.5 * np.arctan2(2 * hrc, hcc - hrr)  # line direction (any fixed offset cancels below)
+
+    lines = remove_small_objects(ridge > c.BOXWORK_RIDGE_THRESHOLD, min_size=40)
+    skel = remove_small_objects(skeletonize(lines), min_size=10, connectivity=2)
+    win = c.BOXWORK_WINDOW_SIGMA_M
+    smooth = lambda a: ndi.gaussian_filter(a.astype(np.float64), win)
+    density = smooth(skel)
+    align = np.hypot(smooth(np.cos(2 * theta) * skel), smooth(np.sin(2 * theta) * skel)) / np.maximum(density, 1e-9)
+    lo, hi = np.percentile(density, [50, 95])
+    ramp = lambda a, a0, a1: np.clip((a - a0) / (a1 - a0), 0, 1)
+    zone_score = ndi.gaussian_filter(ramp(density, lo, hi) * ramp(1 - align, 0.5, 0.85), 5)
+    zone = zone_score > c.BOXWORK_ZONE_THRESHOLD
+    band = ndi.binary_dilation(skel) & zone  # ~3 m wide ridge band, boxwork only
+
+    f = c.CELL_M
+    score = (export.block(band.astype(np.uint8), f, np.max) * 100).astype(np.uint8)
+    zone2 = export.block(zone.astype(np.uint8), f, np.max).astype(bool)
+    rgba = np.zeros(score.shape + (4,), dtype=np.uint8)
+    rgba[zone2] = (255, 200, 60, 55)  # boxwork zone: pale tint
+    rgba[score > 0] = (255, 110, 0, 225)  # ridges
+    meta = {
+        "id": "boxwork",
+        "label": "Boxwork ridges",
+        "effect": "raises risk",
+        "description": ("Ridge lines found in the orbital image where they cross in many directions, the pattern of "
+                        "boxwork. Each crossing means stepping over a ridge 1-2 m high. Ridges are also the science "
+                        "target of this area."),
+        "source": "Rule-based ridge detection on the HiRISE colour mosaic (USGS / JPL), " + c.ORTHO_PAGE,
+        "cannot_see": "Ridge height is not measured, only the line; some layer edges may still be counted and "
+                      "faint ridges under dust are missed. Not checked against rover images ridge by ridge.",
+        "rgba": rgba,
+        "zone_share": round(float(zone2.mean()), 4),
+        "ridge_km": round(float(skel[zone].sum()) / 1000, 1),
+    }
+    return score, meta
+
+
+LAYERS = [layer_curiosity, layer_comm, layer_boxwork]
 
 
 # Combination -----------------------------------------------------------------------------------------
@@ -153,9 +213,12 @@ def main():
         lid, weight = meta["id"], c.LAYER_WEIGHTS[meta["id"]]
         total += weight * score.astype(np.float64) / 100.0
         score.tofile(c.APP / "layers" / f"{lid}.bin")
-        rgba = np.zeros((rows, cols, 4), dtype=np.uint8)
-        rgba[score > 0] = meta.pop("colour")
-        rgba[..., 3] = (rgba[..., 3].astype(np.float64) * score / 100).astype(np.uint8)
+        if "rgba" in meta:  # a layer may draw its own map image
+            rgba = meta.pop("rgba")
+        else:
+            rgba = np.zeros((rows, cols, 4), dtype=np.uint8)
+            rgba[score > 0] = meta.pop("colour")
+            rgba[..., 3] = (rgba[..., 3].astype(np.float64) * score / 100).astype(np.uint8)
         Image.fromarray(rgba).save(c.APP / "layers" / f"{lid}.png", optimize=True)
         extra = {k: meta.pop(k) for k in list(meta) if k not in
                  ("id", "label", "effect", "description", "source", "cannot_see")}

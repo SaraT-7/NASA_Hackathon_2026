@@ -30,7 +30,7 @@
   },
   "risk_model": {
     "slope_limit_deg": 20,
-    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
+    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points); Boxwork ridges (+15 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
     "layers_formula": "risk = clamp(slope / limit x 100 + sum(weight x layer / 100), 0, 100)"
   },
   "sources": [
@@ -90,6 +90,20 @@
       "cells_share": 0.7008,
       "habitat_antenna_m": 3,
       "suit_antenna_m": 2
+    },
+    {
+      "id": "boxwork",
+      "label": "Boxwork ridges",
+      "bin": "layers/boxwork.bin",
+      "img": "layers/boxwork.png",
+      "weight": 15,
+      "effect": "raises risk",
+      "description": "Ridge lines found in the orbital image where they cross in many directions, the pattern of boxwork. Each crossing means stepping over a ridge 1-2 m high. Ridges are also the science target of this area.",
+      "source": "Rule-based ridge detection on the HiRISE colour mosaic (USGS / JPL), https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm",
+      "cannot_see": "Ridge height is not measured, only the line; some layer edges may still be counted and faint ridges under dust are missed. Not checked against rover images ridge by ridge.",
+      "cells_share": 0.0289,
+      "zone_share": 0.1215,
+      "ridge_km": 26.3
     }
   ]
 }
