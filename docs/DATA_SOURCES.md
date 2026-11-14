@@ -20,7 +20,7 @@ Her öğe üç türden biridir:
 | 4 | Birleşik risk formülü | Türetilmiş (yöntem bizim) | 2, 3 ve katmanlar | `pipeline/06_layers.py`, `shared/data.js` |
 | 5 | Katman: Curiosity'nin sürüş izi | Ölçüm + varsayım (şerit genişliği, ağırlık) | NASA/JPL MSL traverse (MMGIS) | `06_layers.py` → `layer_curiosity` |
 | 6 | Katman: İletişim gölgesi | Türetilmiş + varsayım (habitat yeri, anten boyları, ağırlık) | 1'den görüş hattı hesabı | `06_layers.py` → `layer_comm` |
-| 7 | Katman: Boxwork sırtları | Türetilmiş + varsayım | HiRISE görüntüsünden kural tabanlı tespit | hazırlanıyor (henüz `main`'de değil) |
+| 7 | Katman: Boxwork sırtları | Türetilmiş + varsayım (ağırlık, eşikler) | HiRISE görüntüsünden kural tabanlı tespit | `06_layers.py` → `layer_boxwork` |
 | 8 | Uydu görüntüsü | Ölçüm | USGS/JPL MSL Gale HiRISE renkli mozaik | `pipeline/02_cut_ortho.py` |
 | 9 | Bilim durakları | Ölçüm (rover konumları) | NASA/JPL MSL waypoints (MMGIS) | `03_export_app_data.py` |
 | 10 | Habitat | Varsayım | Alanın en düz yakın noktası | `03_export_app_data.py` |
@@ -85,12 +85,20 @@ risk = clamp( round( eğim / 20 × 100  +  Σ ağırlık × katman / 100 ), 0, 1
 - **Etki:** Deneme rotasının gölgedeki kısmı 474 m'den 323 m'ye indi; rota 15 m uzadı.
 - **EN:** "Radio shadow is computed from the elevation model: where terrain blocks the line of sight to the habitat's antenna, the astronaut cannot call home."
 
-### 7 · Katman: Boxwork sırtları (hazırlanıyor)
+### 7 · Katman: Boxwork sırtları (türetilmiş + varsayım)
 
-- **Girdi:** 8'deki HiRISE görüntüsü (0,5 m). Yükseklik modeli 1–2 m'lik sırtları çözemeyecek kadar yumuşak.
-- **Yöntem (kural tabanlı, makine öğrenmesi yok):** Sato çizgi filtresiyle parlak sırt çizgileri; ~40 m pencerede sırt yoğunluğu ve yönlerin ne kadar dağınık olduğu. Çok yönlü, kesişen sırtlar = boxwork; paralel çizgiler = kaya katmanı kenarı, dışarıda kalır.
-- **Doğrulama (prototipte):** Görüntüde bulunan sırtlar yükseklik modelinde çevresinden ortalama ~20 cm yüksek (bağımsız veri). Boxwork bölgesi alanın %12'si ama Curiosity'nin 144 konumunun 56'sı (%39) bu bölgede.
-- **Varsayım:** Ağırlık +15 (sırt aşma). Eklendiğinde bu bölüm güncellenecek.
+- **Girdi:** 8'deki HiRISE renkli görüntüsü (0,5 m, 1 m'ye indirildi). Yükseklik modeli 1–2 m'lik sırtları çözemeyecek kadar yumuşak; bu yüzden görüntü kullanıldı.
+- **Yöntem (kural tabanlı, makine öğrenmesi yok):**
+  1. Parlaklık, yerel kontrasta göre normalleştirildi (tozlu ve koyu zemin karşılaştırılabilsin).
+  2. Sato çizgi filtresi parlak sırt çizgilerini buldu; çizgiler 1 piksel kalınlığa inceltildi.
+  3. ~40 m'lik pencerelerde sırt yoğunluğu ve sırt yönlerinin ne kadar hizalı olduğu ölçüldü (iki katlı açıların ortalama vektör uzunluğu: 0 = her yöne, 1 = paralel). Yoğun ve çok yönlü = boxwork bölgesi; paralel çizgiler (kaya katmanı kenarları) dışarıda kalır.
+  4. Katman = boxwork bölgesi içindeki ~3 m'lik sırt bandı.
+- **Varsayımlar:** Ağırlık **+15** (sırt aşma); eşikler `pipeline/config.py` → `BOXWORK_*`.
+- **Doğrulama (bağımsız verilerle):** Görüntüde bulunan sırtlar yükseklik modelinde çevresinden ortalama ~20 cm yüksek. Boxwork bölgesi alanın %12'si ama Curiosity'nin 144 konumunun 56'sı (%39) bu bölgede (rover bilerek boxwork'e gitti). s2 "Central boxwork site" bölgenin içinde. Görsel kontrolde merkezdeki boxwork ağı sırt sırt yakalanıyor.
+- **Göremedikleri:** Sırtın yüksekliğini ölçmez, yalnız çizgiyi bulur. Bazı katman kenarları yine sayılabilir; toz altındaki soluk sırtlar kaçabilir. Rover fotoğraflarıyla sırt sırt karşılaştırılmadı.
+- **Sonuç:** 26 km sırt çizgisi, hücrelerin %2,9'u sırt bandı.
+- **Etki:** Deneme rotasının aştığı boxwork sırtı 13'ten 9'a indi. Habitat → 1 → 2 rotasında "Lowest estimated risk" yolun %3'ünde sırt bandında, "Shortest" %17'sinde.
+- **EN:** "Boxwork ridges are mapped from HiRISE images with a rule-based line detector: ridges that cross in many directions are boxwork, parallel ones are rock layers."
 
 ### 8 · Uydu görüntüsü (ölçüm)
 
