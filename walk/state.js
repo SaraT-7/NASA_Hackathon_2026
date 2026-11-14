@@ -29,7 +29,7 @@ export function createWalk(route) {
   const last = points.length - 1;
   const stops = Array.isArray(route.stops) ? route.stops : [];
 
-  // Seconds needed to walk back to the habitat from each route point, slower-return assumption included.
+  // Seconds needed to walk back to the habitat from each route point, return safety margin included.
   // Built one leg at a time with the shared returnTimeS(), so backS[i] equals returnTimeS(route, i).
   const backS = new Float64Array(points.length);
   for (let i = 1; i <= last; i++) {
@@ -146,7 +146,7 @@ export function createWalk(route) {
 
     /**
      * Advance the simulated clock by dtS seconds. While walking the position follows route.points[].time;
-     * while returning it follows the same path backwards at the slower return pace. At a stop the walk waits
+     * while returning it follows the same path backwards, timed with the return safety margin. At a stop the walk waits
      * for doneHere(), and nothing moves while paused.
      */
     tick(dtS) {
