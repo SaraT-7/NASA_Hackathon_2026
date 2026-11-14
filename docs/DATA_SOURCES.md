@@ -21,6 +21,7 @@ Her öğe üç türden biridir:
 | 5 | Katman: Curiosity'nin sürüş izi | Ölçüm + varsayım (şerit genişliği, ağırlık) | NASA/JPL MSL traverse (MMGIS) | `06_layers.py` → `layer_curiosity` |
 | 6 | Katman: İletişim gölgesi | Türetilmiş + varsayım (habitat yeri, anten boyları, ağırlık) | 1'den görüş hattı hesabı | `06_layers.py` → `layer_comm` |
 | 7 | Katman: Boxwork sırtları | Türetilmiş + varsayım (ağırlık, eşikler) | HiRISE görüntüsünden kural tabanlı tespit | `06_layers.py` → `layer_boxwork` |
+| 7b | Katman: Radyasyon sığınağı (yalnız harita) | Türetilmiş + ölçümle kalibre | 1'den kapalı gök oranı; MSL RAD Murray Buttes ölçümü | `06_layers.py` → `layer_sky` |
 | 8 | Uydu görüntüsü | Ölçüm | USGS/JPL MSL Gale HiRISE renkli mozaik | `pipeline/02_cut_ortho.py` |
 | 9 | Bilim durakları | Ölçüm (rover konumları) | NASA/JPL MSL waypoints (MMGIS) | `03_export_app_data.py` |
 | 10 | Habitat | Varsayım | Alanın en düz yakın noktası | `03_export_app_data.py` |
@@ -100,6 +101,18 @@ risk = clamp( round( eğim / 20 × 100  +  Σ ağırlık × katman / 100 ), 0, 1
 - **Etki:** Deneme rotasının aştığı boxwork sırtı 13'ten 9'a indi. Habitat → 1 → 2 rotasında "Lowest estimated risk" yolun %3'ünde sırt bandında, "Shortest" %17'sinde.
 - **EN:** "Boxwork ridges are mapped from HiRISE images with a rule-based line detector: ridges that cross in many directions are boxwork, parallel ones are rock layers."
 
+### 7b · Katman: Radyasyon sığınağı (türetilmiş, ölçümle kalibre; yalnız harita)
+
+- **Fikir:** Mars'ta kozmik ışınlar gökyüzünün her yönünden gelir. Bir yamaç ya da tepe gökyüzünün bir kısmını kapatırsa o yönden gelen radyasyonu da keser.
+- **Ölçülmüş dayanak:** Curiosity'nin RAD cihazı, Murray Buttes'ta gökyüzünün %19'unu kapatan Butte M12'nin yanında (sol 1456–1467) beklenen doz hızında %4, nötr parçacıklarda %7,5 düşüş ölçtü. Mars yüzeyinde doğal arazinin radyasyon koruması sağladığının ilk yerinde ölçülmüş kanıtı. Ehresmann, Hassler, Zeitlin, Guo, Wimmer-Schweingruber, Khaksari, Loeffler (2021), *Natural Radiation Shielding on Mars Measured With the MSL/RAD Instrument*, JGR Planets: https://doi.org/10.1029/2021JE006851
+- **Yöntem:** 1'deki yükseklik modelinden her hücrede 24 yönde, 800 m'ye kadar ufuk yüksekliği (gözlemci zeminden 1,5 m). Kapalı gök oranı = ufkun altında kalan katı açının üst yarıküreye oranı.
+- **Doz tahmini:** son ölçülen 0,16 mGy/gün × (1 − 0,04 / 0,19 × kapalı gök oranı). En korunaklı noktada gökyüzünün %51'i kapalı → yaklaşık 0,143 mGy/gün (%11 düşük).
+- **Varsayımlar:** Ölçeklemenin doğrusal olduğu (tek bir ölçüm noktasından); %15 ve üstü kapalı gök = "korunaklı"; gözlemci yüksekliği 1,5 m.
+- **Ağırlık 0 (bilinçli seçim):** Rotayı etkilemez. Birkaç saatlik yürüyüşte korunaklı ve açık yol arasındaki doz farkı çok küçük (~0,0015 mGy); rotayı uçurum diplerine çekmek kaya düşmesi riski getirir. Katman **güneş fırtınasında nereye sığınılacağını** gösteren harita olarak kullanılır.
+- **Göremedikleri:** 800 m'den uzak ya da alanın dışındaki arazi (örneğin Mount Sharp'ın üst kısmı) açık gök sayılıyor; sığınak etkisi olduğundan az görünür. Güneş fırtınası parçacıkları kozmik ışınlardan farklı korunur; ölçek kozmik ışın ölçümünden geliyor.
+- **Sonuç:** Alanın %34'ü korunaklı; korunaklı yerler yamaç ve uçurum dipleri (görsel kontrolde tutarlı).
+- **EN:** "Terrain that hides part of the sky also blocks part of the cosmic radiation: Curiosity measured 4 % less dose next to a butte that hid 19 % of the sky. We map this across the area as a shelter map for solar storms."
+
 ### 8 · Uydu görüntüsü (ölçüm)
 
 - **Ürün:** MSL Gale Merged Orthophoto Mosaic, HiRISE renkli sürüm (USGS / JPL; Calef ve Parker). https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm
@@ -161,4 +174,5 @@ risk = clamp( round( eğim / 20 × 100  +  Σ ağırlık × katman / 100 ), 0, 1
 - **"Yenilik ne?"** Bu veriler ayrı ayrı vardı; biz onları astronotun tek bir kararında birleştirdik: "Buradan yürüyebilir miyim, yardım çağırabilir miyim ve zamanında dönebilir miyim?" Her katman açılıp kapatılabiliyor, rotanın neden değiştiği görülüyor.
 - **"Ağırlıkları nereden buldunuz?"** Bizim seçimimiz; ölçüm değil. Bu yüzden arayüzde "assumption" yazıyor ve her katman kapatılabiliyor. Gerçek görevde bunlar ekip ve astronotla birlikte ayarlanır.
 - **"Mars için giysi şartnamesi var mı?"** Yok; NASA'nın Artemis (Ay) gereksinimlerini kullandık ve bunu açıkça söylüyoruz.
+- **"Radyasyon katmanı neden rotayı etkilemiyor?"** Birkaç saatlik yürüyüşte fark çok küçük ve rotayı uçurum dibine çekmek kaya düşmesi riski getirir. Bu katman güneş fırtınasında nereye sığınılacağını gösterir; dayanağı Curiosity'nin Murray Buttes ölçümü.
 - **"Model neyi göremiyor?"** Tek tek kayalar (1 m altı), gevşek kum, 1–2 m'lik sırtların yüksekliği, aktarıcı uydular. Her katmanın "Cannot show" satırında yazılı.
