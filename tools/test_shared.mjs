@@ -57,5 +57,12 @@ for (const r of [a, b]) {
 }
 assert.equal(nearestPointIndex(a.points, a.points[5].x, a.points[5].y), 5);
 
+// data layers: with every layer on, combineRisk() must give back risk.bin; with none, the slope-only risk
+const layers = await data.loadLayers(grid);
+if (grid.riskSlope) {
+  assert.deepEqual(data.combineRisk(grid, layers.map((l) => l.id)), grid.riskAll, 'all layers on != risk.bin');
+  assert.deepEqual(data.combineRisk(grid, []), grid.riskSlope);
+}
+
 console.log(`shared modules OK  (shortest ${Math.round(a.totals.distance_m)} m, risk ${a.totals.mean_risk.toFixed(1)};` +
   ` low risk ${Math.round(b.totals.distance_m)} m, risk ${b.totals.mean_risk.toFixed(1)})`);

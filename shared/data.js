@@ -127,3 +127,47 @@ export function riskForCost(grid, index) {
   const r = grid.risk[index];
   return r === RISK_NODATA ? 100 : r;
 }
+
+/**
+ * Data layers on top of slope (docs/CONTRACT.md, grid.json "layers"). Loads each layer's 0-100 cell scores and the
+ * slope-only risk, so the planner can switch layers on and off and rebuild the risk with combineRisk().
+ * Adds to the grid: riskAll (risk.bin, all layers on), riskSlope (slope only, or null), layerScores { id: Uint8Array }.
+ * @returns {Promise<object[]>} grid.meta.layers (empty list if the data has no layers)
+ */
+export async function loadLayers(grid) {
+  const layers = grid.meta.layers || [];
+  grid.riskAll = grid.risk;
+  grid.riskSlope = grid.meta.files.risk_slope
+    ? new Uint8Array(await fetchBuffer(grid.base + grid.meta.files.risk_slope))
+    : null;
+  grid.layerScores = {};
+  for (const layer of layers) {
+    grid.layerScores[layer.id] = new Uint8Array(await fetchBuffer(grid.base + layer.bin));
+  }
+  return layers;
+}
+
+/**
+ * Risk with only the chosen layers switched on:
+ * risk = clamp(round(slope risk + sum(weight x layer / 100)), 0, 100). Impassable (255) and no-data (254) cells stay
+ * as they are; layers never open a closed cell. With every layer on this equals risk.bin.
+ * Use it as `grid.risk = combineRisk(grid, ids)` before searching for routes. Call loadLayers() first.
+ * @param {string[]} enabledIds  ids from grid.meta.layers
+ * @returns {Uint8Array}
+ */
+export function combineRisk(grid, enabledIds) {
+  if (!grid.riskSlope) return grid.riskAll || grid.risk;
+  const on = (grid.meta.layers || []).filter((l) => enabledIds.includes(l.id));
+  const out = new Uint8Array(grid.riskSlope.length);
+  for (let i = 0; i < out.length; i++) {
+    const base = grid.riskSlope[i];
+    if (base === RISK_IMPASSABLE || base === RISK_NODATA) {
+      out[i] = base;
+      continue;
+    }
+    let r = base;
+    for (const l of on) r += (l.weight * grid.layerScores[l.id][i]) / 100;
+    out[i] = Math.min(100, Math.max(0, Math.round(r)));
+  }
+  return out;
+}
