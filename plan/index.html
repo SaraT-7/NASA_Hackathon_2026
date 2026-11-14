@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- plan/ belongs to work stream B. This starter page only proves that the shared modules and the map work. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -10,11 +9,96 @@
   <link rel="stylesheet" href="plan.css">
 </head>
 <body>
-  <header>
-    <a href="../">MarsWalk</a> · Plan
-    <span id="status">Loading…</span>
+  <header class="topbar">
+    <div class="topbar-title">
+      <a href="../">MarsWalk</a>
+      <span class="topbar-sep" aria-hidden="true">/</span>
+      <h1>Plan</h1>
+      <span id="demo-badge" class="demo-badge" hidden>DEMO TERRAIN</span>
+    </div>
+    <p id="status" class="topbar-status" role="status">Loading terrain…</p>
   </header>
-  <div id="map"></div>
+
+  <div class="workspace">
+    <aside class="side side-left" aria-label="Stops and map layers">
+      <section class="block">
+        <div class="block-head">
+          <h2>Stops</h2>
+          <button id="clear-stops-btn" class="link-btn" type="button" hidden>Clear</button>
+        </div>
+        <p class="hint">Select stops in the order you will visit them, in this list or on the map.</p>
+        <div class="stop stop-habitat">
+          <span class="stop-marker" aria-hidden="true">H</span>
+          <span class="stop-text">
+            <span id="habitat-name" class="stop-name">Habitat (hypothetical)</span>
+            <span id="habitat-coords" class="stop-desc">Start and return point</span>
+          </span>
+        </div>
+        <ul id="stops-list" class="stops"></ul>
+      </section>
+
+      <section class="block">
+        <h2>Map layers</h2>
+        <label class="check">
+          <input type="checkbox" id="toggle-risk-layer" checked>
+          <span>Estimated risk</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="toggle-slope-layer">
+          <span>Slope</span>
+        </label>
+      </section>
+    </aside>
+
+    <main class="center">
+      <div class="map-wrap">
+        <div id="map"></div>
+      </div>
+
+      <section class="profile" aria-label="Elevation profile">
+        <div class="profile-head">
+          <h2>Elevation profile <span id="profile-route-label" class="profile-route"></span></h2>
+          <span id="profile-hover-info" class="profile-readout"></span>
+        </div>
+        <div id="profile-wrap" class="profile-plot">
+          <svg id="profile-svg" preserveAspectRatio="none" role="img" aria-label="Elevation along the selected route"></svg>
+        </div>
+      </section>
+    </main>
+
+    <aside class="side side-right" aria-label="Routes, conditions and data">
+      <section class="block">
+        <h2>Routes</h2>
+        <div id="routes-container"></div>
+        <p id="route-rationale" class="rationale" hidden></p>
+        <div id="route-alert" class="alert" role="alert" hidden></div>
+        <button id="start-walk-btn" class="primary-btn" type="button" disabled>Start walk</button>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <h2>Last measured conditions</h2>
+          <span id="conditions-mock-tag" class="demo-badge" hidden>MOCK</span>
+        </div>
+        <p id="conditions-note" class="hint">Last archived measurements, not real time.</p>
+        <div id="conditions-list" class="conditions"></div>
+      </section>
+
+      <details id="data-limits-details" class="block limits">
+        <summary>Data and limits</summary>
+        <div class="limits-body">
+          <h3>Sources</h3>
+          <div id="sources-list"></div>
+          <h3>Estimated risk model</h3>
+          <p id="risk-model-box" class="limits-text"></p>
+          <h3>Planning assumptions</h3>
+          <p class="limits-text">Assumptions used for planning, not measurements.</p>
+          <div id="assumptions-list"></div>
+        </div>
+      </details>
+    </aside>
+  </div>
+
   <script src="../shared/vendor/leaflet/leaflet.js"></script>
   <script type="module" src="plan.js"></script>
 </body>
