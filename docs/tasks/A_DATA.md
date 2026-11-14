@@ -56,8 +56,8 @@ gdal_translate -projwin <ulx> <uly> <lrx> <lry> \
 
 - Eğimi 1 m veriden hesapla (`gdaldem slope` ya da numpy gradient), sonra 2 m'lik hücrelere indirirken her 2 × 2 bloğun **en büyük** eğimini al (temkinli seçim).
 - Yüksekliği 2 m'ye indirirken ortalama al.
-- Risk (çekirdek sürüm): `risk = round(eğim / 30 × 100)`, en fazla 100. Eğim ≥ 30° ise `255` (geçilmez). Veri olmayan hücre `254`.
-- Bu kuralı `grid.json` içindeki `risk_model` alanına yaz. 30° bir varsayımdır; öyle etiketle.
+- Risk (çekirdek sürüm): `risk = round(eğim / 20 × 100)`, en fazla 100. Eğim ≥ 20° ise `255` (geçilmez). Veri olmayan hücre `254`.
+- Bu kuralı `grid.json` içindeki `risk_model` alanına yaz. 20°, NASA'nın Ay giysisi gereksinimidir (EVA-EXP-0075); kaynağıyla birlikte yaz.
 
 ### 4. Uydu görüntüsü
 

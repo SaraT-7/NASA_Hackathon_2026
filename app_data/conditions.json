@@ -1,42 +1,107 @@
 {
-  "mock": true,
-  "note": "Last archived measurements, not real time.",
+  "mock": false,
+  "note": "Last archived measurements at the Curiosity rover's position. Not real time.",
+  "sources": [
+    {
+      "name": "MSL RAD reduced data records, NASA PDS Planetary Plasma Interactions node",
+      "url": "https://pds-ppi.igpp.ucla.edu/collection/MSL-M-RAD-3-RDR-V1.0"
+    },
+    {
+      "name": "REMS weather report (Centro de Astrobiologia, INTA-CSIC / NASA-JPL), an outreach product; the science archive is at the NASA PDS Atmospheres node",
+      "url": "https://pds-atmospheres.nmsu.edu/data_and_services/atmospheres_data/MARS/curiosity/rems.html"
+    }
+  ],
   "items": [
     {
       "id": "radiation",
-      "label": "Surface radiation dose rate",
-      "value": 0.67,
-      "unit": "mSv/day",
-      "measured": "MOCK",
-      "instrument": "MSL RAD",
-      "source_url": null
-    },
-    {
-      "id": "pressure",
-      "label": "Air pressure",
-      "value": 850,
-      "unit": "Pa",
-      "measured": "MOCK",
-      "instrument": "MSL REMS",
-      "source_url": null
+      "label": "Radiation: absorbed dose rate",
+      "value": 0.16,
+      "unit": "mGy/day",
+      "measured": "Sols 4841-4843 (to 2026-03-21)",
+      "instrument": "MSL RAD, tissue-equivalent detector (E)",
+      "source_url": "https://pds-ppi.igpp.ucla.edu/collection/MSL-M-RAD-3-RDR-V1.0",
+      "detail": "Mean of 262 observations. Absorbed dose, not dose equivalent (mSv)."
     },
     {
       "id": "air_temp_max",
       "label": "Air temperature, daily max",
-      "value": -10,
+      "value": -5.0,
       "unit": "°C",
-      "measured": "MOCK",
+      "measured": "Sol 4995 (2026-08-25)",
       "instrument": "MSL REMS",
-      "source_url": null
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
     },
     {
       "id": "air_temp_min",
       "label": "Air temperature, daily min",
-      "value": -75,
+      "value": -71.0,
       "unit": "°C",
-      "measured": "MOCK",
+      "measured": "Sol 4995 (2026-08-25)",
       "instrument": "MSL REMS",
-      "source_url": null
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "ground_temp_max",
+      "label": "Ground temperature, daily max",
+      "value": 4.0,
+      "unit": "°C",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "ground_temp_min",
+      "label": "Ground temperature, daily min",
+      "value": -84.0,
+      "unit": "°C",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "pressure",
+      "label": "Air pressure, daily mean",
+      "value": 777.0,
+      "unit": "Pa",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "uv",
+      "label": "UV irradiance index",
+      "value": "Moderate",
+      "unit": "",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "sky",
+      "label": "Sky",
+      "value": "Sunny",
+      "unit": "",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "sunrise",
+      "label": "Sunrise, local time",
+      "value": "06:46",
+      "unit": "",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+    },
+    {
+      "id": "sunset",
+      "label": "Sunset, local time",
+      "value": "18:51",
+      "unit": "",
+      "measured": "Sol 4995 (2026-08-25)",
+      "instrument": "MSL REMS",
+      "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
     }
   ]
 }
