@@ -6,15 +6,10 @@ venv/
 env/
 .ipynb_checkpoints/
 
-# Ortam / gizli bilgiler
-.env
-.streamlit/secrets.toml
-
-# Büyük veri dosyaları (GitHub 100 MB sınırı) - Drive üzerinden paylaşın
+# Ham ve ara veriler (büyük dosyalar; GitHub sınırı 100 MB). app_data/ git'e GİRER.
 data/raw/*
-data/processed/*
+data/work/*
 !data/raw/.gitkeep
-!data/processed/.gitkeep
 *.tif
 *.tiff
 *.img
@@ -22,6 +17,10 @@ data/processed/*
 *.jp2
 *.lbl
 *.zip
+*.aux.xml
+
+# Ortam / gizli bilgiler
+.env
 
 # Editör / işletim sistemi
 .vscode/

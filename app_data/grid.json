@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "mock": true,
+  "name": "MOCK terrain (not Mars data)",
+  "cell_size_m": 2,
+  "cols": 500,
+  "rows": 500,
+  "width_m": 1000,
+  "height_m": 1000,
+  "georef": {
+    "sw_lat": null,
+    "sw_lon": null,
+    "radius_m": 3396190,
+    "note": "mock data has no real location"
+  },
+  "files": {
+    "risk": "risk.bin",
+    "slope": "slope.bin",
+    "elevation": "elevation.bin",
+    "ortho": "ortho.png",
+    "ortho_small": "ortho_small.png",
+    "slope_img": "slope.png",
+    "risk_img": "risk.png",
+    "stops": "stops.json",
+    "curiosity_path": "curiosity_path.json",
+    "conditions": "conditions.json"
+  },
+  "risk_model": {
+    "slope_limit_deg": 30,
+    "description": "risk = slope / slope_limit x 100; cells at or above the limit and boulders are impassable"
+  },
+  "sources": [
+    {
+      "layer": "Elevation and slope",
+      "mission": "MOCK",
+      "instrument": "MOCK",
+      "product_id": "MOCK",
+      "resolution_m": 2,
+      "url": null,
+      "cannot_see": "Mock terrain. Replace with the real source and what it cannot resolve."
+    }
+  ],
+  "generated": "2026-11-14T13:01:12+00:00"
+}

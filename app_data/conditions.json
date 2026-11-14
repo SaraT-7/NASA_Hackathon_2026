@@ -1,0 +1,42 @@
+{
+  "mock": true,
+  "note": "Last archived measurements, not real time.",
+  "items": [
+    {
+      "id": "radiation",
+      "label": "Surface radiation dose rate",
+      "value": 0.67,
+      "unit": "mSv/day",
+      "measured": "MOCK",
+      "instrument": "MSL RAD",
+      "source_url": null
+    },
+    {
+      "id": "pressure",
+      "label": "Air pressure",
+      "value": 850,
+      "unit": "Pa",
+      "measured": "MOCK",
+      "instrument": "MSL REMS",
+      "source_url": null
+    },
+    {
+      "id": "air_temp_max",
+      "label": "Air temperature, daily max",
+      "value": -10,
+      "unit": "°C",
+      "measured": "MOCK",
+      "instrument": "MSL REMS",
+      "source_url": null
+    },
+    {
+      "id": "air_temp_min",
+      "label": "Air temperature, daily min",
+      "value": -75,
+      "unit": "°C",
+      "measured": "MOCK",
+      "instrument": "MSL REMS",
+      "source_url": null
+    }
+  ]
+}

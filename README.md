@@ -1,57 +1,35 @@
-# Boxwork Seferi · Mars Keşif Yürüyüşü İçin Akıllı Harita
+# MarsWalk
 
-NASA Space Apps Challenge 2026 — *Interplanetary Survival Guide: Martian Map*
+NASA Space Apps Challenge 2026 · *Interplanetary Survival Guide: Martian Map*
 
-Gale Krateri / Mount Sharp'taki boxwork oluşumlarına yapılacak bir astronot yürüyüşü (Marswalk)
-için çok katmanlı harita: HiRISE/CTX topografya, HiRISE optik, CRISM spektral, THEMIS termal,
-Curiosity RAD/REMS ve Mastcam/Navcam verilerini birleştirip **tahmini düşük riskli** rotalar üretir.
+A Marswalk planner and walk guide for the boxwork ridges of Mount Sharp, Gale Crater. One static web site, two screens:
 
-## Klasör yapısı
+- **Plan** (`plan/`): in the habitat, on a large screen. Map layers, science stops, two alternative routes.
+- **Walk** (`walk/`): on the surface, on a phone. Next stop, distance left, latest turn-back time.
 
-```
-app.py              Streamlit arayüzü (giriş noktası)
-src/data/           Veri indirme, okuma, kırpma
-src/risk/           Eğim, pürüzlülük ve risk (maliyet) ızgarası
-src/rocks/          HiRISE üzerinde kaya tespiti
-src/routing/        A*, alternatif rotalar, Dijkstra güvenli dönüş alanı
-src/ui/             Harita ve grafik bileşenleri
-data/raw/           Ham veriler (git'e girmez)
-data/processed/     İşlenmiş katmanlar (git'e girmez)
-notebooks/          Denemeler
-docs/               Görev özeti, sunum
-```
+> Status: the terrain currently in `app_data/` is demo data, not Mars data. Real data replaces it during the event.
 
-## Kurulum
+## Run it
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows  (macOS/Linux: source .venv/bin/activate)
-pip install -r requirements.txt
-streamlit run app.py
+python -m http.server 8000
 ```
 
-> Windows'ta `gdal`/`rasterio` pip ile sorun çıkarırsa: `conda install -c conda-forge gdal rasterio`
+Then open `http://localhost:8000/`.
 
-## Veriler
+## Repository layout
 
-Büyük raster dosyaları GitHub'a **yüklenmez**. Ortak Drive klasöründen `data/raw/` içine indirin.
-Drive linki: _(buraya ekleyin)_
+```
+index.html      landing page
+plan/           planning screen (work stream B)
+walk/           walk screen (work stream C)
+shared/         shared modules: data loading, walking model, route object, Leaflet
+app_data/       data the site reads (produced by pipeline/)
+pipeline/       Python scripts that turn NASA data into app_data/ (work stream A)
+tools/          mock data generator, validator, tests
+docs/           team contract and task files (Turkish)
+```
 
-## Ekip ve görev paylaşımı
+## For the team
 
-| Kişi | Sorumluluk | Branch |
-|------|------------|--------|
-| 1 | Veri işleme, eğim/risk katmanları, kaya tespiti | `feature/risk` |
-| 2 | Rota algoritması, alternatif rotalar, güvenli dönüş alanı | `feature/routing` |
-| 3 | Arayüz (planlama + yürüyüş), veri güven paneli, sunum | `feature/ui` |
-
-## Çalışma kuralları
-
-- `main` her zaman çalışır durumda kalır; doğrudan `main`'e push yok.
-- Herkes kendi branch'inde çalışır, bitince Pull Request açar, bir kişi bakıp birleştirir.
-- Sık sık `git pull` yapın, küçük ve açıklamalı commit atın.
-
-## Not
-
-Rotalar "güvenli" değil, **"tahmini düşük riskli"** olarak sunulur; veri çözünürlüğünden küçük
-engeller görünmez. Koşul verileri gerçek zamanlı değil, **son ölçülen değerlerdir**.
+Ekip içi kurallar ve iş bölümü: [`docs/CONTRACT.md`](docs/CONTRACT.md) ve [`docs/tasks/`](docs/tasks/).

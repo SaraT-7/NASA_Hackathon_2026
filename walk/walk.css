@@ -1,0 +1,10 @@
+/* walk/ belongs to work stream C. Phone first: large type, large touch targets (gloves). */
+html, body { margin: 0; font-family: system-ui, sans-serif; background: #120e0c; color: #f3ebe4; }
+header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #261d18; }
+header a { color: #e2a66f; text-decoration: none; }
+#badge { margin-left: auto; padding: 2px 8px; border-radius: 6px; font-size: 13px; background: #7a4a12; }
+#badge:empty { display: none; }
+main { padding: 16px; display: grid; gap: 12px; }
+.tile { padding: 16px; border-radius: 12px; background: #261d18; }
+.tile h2 { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: #d2c3b7; }
+.tile p { margin: 0; font-size: 28px; font-weight: 600; }

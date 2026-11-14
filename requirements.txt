@@ -1,13 +1,6 @@
+# Yalnızca pipeline/ ve tools/ için (veri hazırlığı). Web sitesi hiçbir kurulum gerektirmez.
 numpy
-pandas
+Pillow
 rasterio
-gdal
 scipy
 scikit-image
-opencv-python
-shapely
-pyproj
-folium
-streamlit
-streamlit-folium
-plotly

@@ -1,0 +1,6 @@
+/* plan/ belongs to work stream B. */
+html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; background: #1b1512; color: #f3ebe4; }
+header { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #261d18; }
+header a { color: #e2a66f; text-decoration: none; }
+#status { margin-left: auto; color: #d2c3b7; font-size: 14px; }
+#map { height: calc(100% - 44px); background: #120e0c; }

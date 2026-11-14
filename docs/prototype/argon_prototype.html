@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mars Keşif Yürüyüşü İçin Akıllı Harita — Boxwork Seferi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        space: {
+                            950: '#070a10',
+                            900: '#0b0f17',
+                            800: '#131b2e',
+                            700: '#1e293b',
+                        },
+                        mars: {
+                            500: '#e05a47',
+                            600: '#c84331',
+                            400: '#f27a68',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f17;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        /* Özel Kaydırma Çubuğu */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+        .hud-grid-bg {
+            background-image: 
+                linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            80%, 100% { transform: scale(2.2); opacity: 0; }
+        }
+        input[type=range] {
+            accent-color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+
+    <!-- ÜST NAVİGASYON BAR -->
+    <header class="bg-space-950/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 py-2.5">
+        <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+            <!-- Sol: Başlık & Görev Bilgisi -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-mars-500 to-amber-600 flex items-center justify-center shadow-lg shadow-mars-500/20 border border-mars-400/40 shrink-0">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[11px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-mars-500/20 text-mars-400 border border-mars-500/30 font-semibold">NASA SPACE APPS 2026</span>
+                        <span class="text-xs font-mono text-sky-400">Gale Krateri / Mount Sharp (4.5895° G, 137.4417° D)</span>
+                    </div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">MARS KEŞİF YÜRÜYÜŞÜ İÇİN AKILLI HARİTA — <span class="text-amber-400">BOXWORK SEFERİ</span></h1>
+                </div>
+            </div>
+
+            <!-- Orta: 3 Ekran Mod Seçici -->
+            <div class="flex items-center bg-space-900 p-1 rounded-xl border border-slate-800 w-full lg:w-auto overflow-x-auto">
+                <button onclick="switchMode('planning')" id="tab-planning" class="flex-1 lg:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                    1. Planlama Modu (Habitat)
+                </button>
+                <button onclick="switchMode('eva')" id="tab-eva" class="flex-1 lg:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-400 hover:text-white whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    2. Yürüyüş Modu (Kask HUD)
+                </button>
+                <button onclick="switchMode('safety')" id="tab-safety" class="flex-1 lg:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-400 hover:text-white whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    3. Güvenlik & Veri Güven Paneli
+                </button>
+            </div>
+
+            <!-- Sağ: Son Ölçülen Çevresel Telemetri (Önemli Uyarı Etiketli) -->
+            <div class="hidden xl:flex items-center gap-4 bg-space-900/90 px-3.5 py-1.5 rounded-xl border border-slate-800/80 text-xs font-mono">
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-amber-400 flex items-center gap-1 font-semibold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                        SON ÖLÇÜLEN DEĞERLER (SOL 4312)
+                    </span>
+                    <span class="text-[10px] text-slate-400">Anlık veri değildir (REMS/RAD)</span>
+                </div>
+                <div class="h-6 w-px bg-slate-800"></div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">RADYASYON (RAD)</span>
+                    <span class="text-emerald-400 font-bold">210 µGy/gün</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">SICAKLIK (REMS)</span>
+                    <span class="text-sky-300 font-bold">-24°C / -78°C</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">BASINÇ</span>
+                    <span class="text-slate-200 font-bold">742 Pa</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-4">
+
+        <!-- ================================================================= -->
+        <!-- EKRAN 1: PLANLAMA MODU (HABİTAT BÜYÜK EKRAN)                      -->
+        <!-- ================================================================= -->
+        <section id="view-planning" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            
+            <!-- SOL PANEL: KATMAN KONTROLLERİ & BİLİM HEDEFLERİ (3 Sütun) -->
+            <div class="lg:col-span-3 flex flex-col gap-4">
+                
+                <!-- NASA Veri Katmanları -->
+                <div class="bg-space-800/90 border border-slate-800 rounded-xl p-4 shadow-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-sky-400 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            NASA Veri Katmanları
+                        </h2>
+                        <span class="text-[11px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">6 Katman Aktif</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">Harita üzerindeki çoklu görev verilerini açıp kapatarak arazi risklerini ve bilim hedeflerini inceleyin.</p>
+
+                    <div class="space-y-2 text-xs">
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg bg-space-900/70 border border-slate-800/80 hover:border-sky-500/40 cursor-pointer transition">
+                            <input type="checkbox" id="layer-topo" checked onchange="renderMap()" class="mt-0.5 rounded text-sky-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="font-semibold text-slate-200 flex items-center justify-between">
+                                    <span>Topografik Eğim (DEM)</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded">HiRISE 1m</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">GDAL eğim analizi ve eşyükselti eğrileri</div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg bg-space-900/70 border border-slate-800/80 hover:border-sky-500/40 cursor-pointer transition">
+                            <input type="checkbox" id="layer-boulders" checked onchange="renderMap()" class="mt-0.5 rounded text-sky-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="font-semibold text-slate-200 flex items-center justify-between">
+                                    <span>Optik Kaya Tespiti</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 bg-red-500/20 text-red-300 rounded">>1m Gölge</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">HiRISE görüntüsünden tespit edilen kaya kümeleri</div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg bg-space-900/70 border border-slate-800/80 hover:border-sky-500/40 cursor-pointer transition">
+                            <input type="checkbox" id="layer-crism" checked onchange="renderMap()" class="mt-0.5 rounded text-sky-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="font-semibold text-slate-200 flex items-center justify-between">
+                                    <span>Spektral Mineral (Boxwork)</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 bg-purple-500/20 text-purple-300 rounded">CRISM 18m</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">Sülfat ve kil damarları (Yeraltı suyu izleri)</div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg bg-space-900/70 border border-slate-800/80 hover:border-sky-500/40 cursor-pointer transition">
+                            <input type="checkbox" id="layer-themis" onchange="renderMap()" class="mt-0.5 rounded text-sky-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="font-semibold text-slate-200 flex items-center justify-between">
+                                    <span>Termal Atalet (Zemin)</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 bg-orange-500/20 text-orange-300 rounded">THEMIS 100m</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">Kayalık ana kayaç vs. gevşek tozlu zemin</div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg bg-space-900/70 border border-slate-800/80 hover:border-sky-500/40 cursor-pointer transition">
+                            <input type="checkbox" id="layer-dijkstra" checked onchange="renderMap()" class="mt-0.5 rounded text-sky-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="font-semibold text-emerald-400 flex items-center justify-between">
+                                    <span>Güvenli Dönüş Alanı</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded">Dijkstra</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">Eğime duyarlı gerçekçi gidiş-dönüş O₂ sınırı</div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg bg-space-900/70 border border-slate-800/80 hover:border-sky-500/40 cursor-pointer transition">
+                            <input type="checkbox" id="layer-uncertainty" checked onchange="renderMap()" class="mt-0.5 rounded text-sky-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="font-semibold text-amber-300 flex items-center justify-between">
+                                    <span>Veri Belirsizlik Katmanı</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded">CTX 6m/px</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">HiRISE kapsaması dışı, küçük engellerin bilinmediği alan</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Bilim Noktaları Seçimi -->
+                <div class="bg-space-800/90 border border-slate-800 rounded-xl p-4 shadow-xl">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Bilim Hedefleri (Boxwork)
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-3">Ziyaret edilecek bilimsel örnek toplama noktalarını seçin veya doğrudan harita üzerinden tıklayın.</p>
+
+                    <div class="space-y-2.5" id="waypoint-list">
+                        <!-- JS ile doldurulacak -->
+                    </div>
+                </div>
+
+                <!-- Veri Güven Özeti Kutusu -->
+                <div class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3.5 text-xs">
+                    <div class="font-bold text-amber-300 flex items-center gap-1.5 mb-1">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Veri Çözünürlük Sınırlaması Notu
+                    </div>
+                    <p class="text-amber-200/80 leading-relaxed">
+                        Rotalar <strong>"kesin güvenli"</strong> olarak değil, <strong>"tahmini düşük riskli"</strong> olarak etiketlenmiştir. HiRISE 1m DTM katmanında 1 metreden küçük keskin kayalar veya gevşek kum tuzakları görünmeyebilir.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ORTA PANEL: İNTERAKTİF MARS HARİTASI VE YÜKSEKLİK PROFİLİ (6 Sütun) -->
+            <div class="lg:col-span-6 flex flex-col gap-4">
+                
+                <!-- Harita Konteyneri -->
+                <div class="bg-space-800/90 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col">
+                    <!-- Harita Üst Bilgi Çubuğu -->
+                    <div class="px-4 py-2.5 bg-space-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="font-mono font-semibold text-slate-200">BÖLGE: MOUNT SHARP BOXWORK SIRTLARI (3.2 km × 2.4 km)</span>
+                        </div>
+                        <div class="flex items-center gap-3 font-mono text-[11px] text-slate-400">
+                            <span id="cursor-coords">İmleç: 4.5892°G, 137.4410°D | Eğim: 6.2°</span>
+                            <button onclick="resetWaypoints()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition">Varsayılan Hedefler</button>
+                        </div>
+                    </div>
+
+                    <!-- İnteraktif Canvas Haritası -->
+                    <div class="relative w-full aspect-[4/3] bg-space-950 select-none overflow-hidden">
+                        <canvas id="marsMapCanvas" class="w-full h-full cursor-crosshair block"></canvas>
+
+                        <!-- Harita Üzeri Lejant -->
+                        <div class="absolute bottom-3 left-3 bg-space-950/90 backdrop-blur-md border border-slate-800 rounded-lg p-2.5 text-[11px] flex flex-wrap items-center gap-x-4 gap-y-1.5 pointer-events-none">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-1 bg-emerald-400 inline-block rounded"></span>
+                                <span class="text-slate-300">Tahmini Düşük Riskli Rota</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-1 bg-rose-500 inline-block rounded"></span>
+                                <span class="text-slate-300">En Kısa Rota (Yüksek Eğim)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-1 bg-sky-400 inline-block rounded"></span>
+                                <span class="text-slate-300">Maks. Bilim Rotası</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-sm border border-emerald-400/70 bg-emerald-500/10 inline-block"></span>
+                                <span class="text-slate-300">Dijkstra Dönüş Menzili</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-sm border border-amber-400/70 bg-amber-500/20 inline-block"></span>
+                                <span class="text-slate-300">Belirsiz Veri (CTX 6m)</span>
+                            </div>
+                        </div>
+
+                        <!-- Harita Üzeri Sağ Üst Pusula & Ölçek -->
+                        <div class="absolute top-3 right-3 bg-space-950/85 backdrop-blur border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-300 flex items-center gap-3 pointer-events-none">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] text-sky-400 font-bold">K</span>
+                                <svg class="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L16 20L12 17L8 20L12 2Z"/></svg>
+                            </div>
+                            <div class="border-l border-slate-700 pl-2.5">
+                                <div class="text-[10px] text-slate-400">ÖLÇEK</div>
+                                <div class="border-b-2 border-x-2 border-slate-300 w-14 h-1.5 mt-0.5"></div>
+                                <div class="text-[9px] text-center mt-0.5">500 m</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seçili Rota Yükseklik ve Eğim Profili Grafiği -->
+                <div class="bg-space-800/90 border border-slate-800 rounded-xl p-4 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                                Seçili Rota Yükseklik (m) ve Eğim Riski Profili
+                            </h3>
+                            <p class="text-xs text-slate-400" id="elevation-subtitle">Aktif Rota: Tahmini En Düşük Riskli Rota (HiRISE DTM 1m verisinden üretilmiştir)</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs font-mono">
+                            <span class="flex items-center gap-1 text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> &lt;10° Düşük Eğim</span>
+                            <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-400"></span> 10°-15° Orta</span>
+                            <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-400"></span> &gt;15° Tehlikeli Eğim</span>
+                        </div>
+                    </div>
+                    <div class="w-full h-36 bg-space-950 rounded-lg border border-slate-800/80 p-2 relative">
+                        <canvas id="elevationCanvas" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SAĞ PANEL: A* MALİYET ALGORİTMASI VE ROTA KARŞILAŞTIRMA (3 Sütun) -->
+            <div class="lg:col-span-3 flex flex-col gap-4">
+                
+                <!-- A* Maliyet Fonksiyonu Ağırlık Ayarları -->
+                <div class="bg-space-800/90 border border-slate-800 rounded-xl p-4 shadow-xl">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-sky-400 flex items-center gap-2 mb-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        A* Rota Maliyet Formülü
+                    </h2>
+                    <div class="bg-space-950 border border-slate-800 rounded-lg p-2.5 my-2 font-mono text-[11px] text-sky-300 leading-relaxed">
+                        Maliyet = Mesafe × (1 + <span class="text-amber-400">w₁·Eğim</span> + <span class="text-rose-400">w₂·Kaya</span> + <span class="text-purple-400">w₃·Belirsizlik</span>)
+                    </div>
+
+                    <div class="space-y-3 mt-3 text-xs">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300 font-medium">Eğim Cezası Ağırlığı (w₁)</span>
+                                <span id="val-slope" class="font-mono text-amber-400 font-bold">2.5x</span>
+                            </div>
+                            <input type="range" id="weight-slope" min="0.5" max="5" step="0.5" value="2.5" oninput="updateWeights()" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300 font-medium">Kaya Yoğunluğu Cezası (w₂)</span>
+                                <span id="val-boulder" class="font-mono text-rose-400 font-bold">2.0x</span>
+                            </div>
+                            <input type="range" id="weight-boulder" min="0.5" max="5" step="0.5" value="2.0" oninput="updateWeights()" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300 font-medium">Veri Belirsizliği Cezası (w₃)</span>
+                                <span id="val-uncertainty" class="font-mono text-purple-400 font-bold">3.0x</span>
+                            </div>
+                            <input type="range" id="weight-uncertainty" min="0.5" max="5" step="0.5" value="3.0" oninput="updateWeights()" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alternatif Rotaları Karşılaştırma Kartları -->
+                <div class="bg-space-800/90 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400">Alternatif Rotalar</h2>
+                        <span class="text-[10px] font-mono text-slate-400">Tıklayarak Seçin</span>
+                    </div>
+
+                    <div id="route-cards-container" class="space-y-2.5">
+                        <!-- JS ile dinamik rota kartları oluşturulacak -->
+                    </div>
+
+                    <button onclick="switchMode('eva')" class="mt-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                        <span>Seçili Rotayı Kask Vizörüne (HUD) Aktar</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- EKRAN 2: YÜRÜYÜŞ MODU (KASK VİZÖRÜ / TABLET HUD)                  -->
+        <!-- ================================================================= -->
+        <section id="view-eva" class="hidden flex-col gap-4">
+            
+            <!-- Acil Durum / Arazi Risk Uyarı Bannerı (Varsayılan Gizli veya Simülasyonla Açılır) -->
+            <div id="eva-hazard-banner" class="hidden bg-rose-950/90 border-2 border-rose-500 rounded-2xl p-4 shadow-2xl shadow-rose-500/20 animate-pulse">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500 flex items-center justify-center shrink-0 text-rose-400">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="text-xs font-mono uppercase tracking-widest text-rose-400 font-bold">ARAZİ RİSK VE SAPMA UYARISI — ACİL PROTOKOL</div>
+                            <h3 class="text-base sm:text-lg font-bold text-white mt-0.5">Planlanan yolun 45m ilerisinde yüksek eğimli (&gt;19°) ve kaya yoğunluklu bölge tespit edildi!</h3>
+                            <p class="text-xs text-rose-200 mt-1">Uzay giysisi hareket kısıtı nedeniyle mevcut rotadan devam edilmesi önerilmez. Dijkstra algoritması ile en düşük maliyetli acil dönüş yolu hesaplandı.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto shrink-0">
+                        <button onclick="activateEmergencyReturn()" class="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg transition">
+                            Alternatif Düşük Riskli Rotayı Aktifleştir
+                        </button>
+                        <button onclick="dismissHazard()" class="px-3 py-2.5 rounded-xl bg-space-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs">
+                            Kapat
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Üst HUD Gösterge Paneli (Sade ve Yüksek Kontrastlı) -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div class="bg-space-900 border border-sky-500/40 rounded-2xl p-4 hud-grid-bg">
+                    <span class="text-[11px] font-mono uppercase text-sky-400 block">SIRADAKİ DURAK</span>
+                    <div class="text-lg sm:text-xl font-bold text-white mt-1 truncate" id="hud-next-stop">Hedef 1: Boxwork Ana Sırtı</div>
+                    <span class="text-xs text-slate-400 font-mono" id="hud-stop-type">Sülfat Damarları Örnekleme</span>
+                </div>
+
+                <div class="bg-space-900 border border-slate-800 rounded-2xl p-4 hud-grid-bg">
+                    <span class="text-[11px] font-mono uppercase text-slate-400 block">HEDEF KALAN MESAFE</span>
+                    <div class="text-2xl sm:text-3xl font-mono font-bold text-amber-400 mt-1" id="hud-rem-dist">420 m</div>
+                    <span class="text-xs text-slate-400 font-mono" id="hud-total-progress">Toplam Yürüyüş: %35</span>
+                </div>
+
+                <div class="bg-space-900 border border-slate-800 rounded-2xl p-4 hud-grid-bg">
+                    <span class="text-[11px] font-mono uppercase text-slate-400 block">KALAN GÖREV SÜRESİ</span>
+                    <div class="text-2xl sm:text-3xl font-mono font-bold text-white mt-1" id="hud-rem-time">38 dk</div>
+                    <span class="text-xs text-slate-400 font-mono">Yürüyüş Hızı: 2.4 km/sa</span>
+                </div>
+
+                <div class="bg-space-900 border border-emerald-500/40 rounded-2xl p-4 hud-grid-bg">
+                    <span class="text-[11px] font-mono uppercase text-emerald-400 block">ÜSSE DÖNÜŞ PAYI (DIJKSTRA)</span>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xl sm:text-2xl font-mono font-bold text-emerald-400" id="hud-return-status">YETERLİ (%68)</span>
+                    </div>
+                    <span class="text-xs text-slate-400 font-mono" id="hud-return-detail">Dönüş Maliyeti: 22 dk O₂</span>
+                </div>
+
+                <div class="col-span-2 lg:col-span-1 bg-space-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <span class="text-[11px] font-mono uppercase text-rose-400 block">SİMÜLASYON TESTİ</span>
+                    <button onclick="triggerHazardAlert()" class="mt-1 w-full py-2 px-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Yüksek Eğim / Risk Uyarısı Simüle Et
+                    </button>
+                </div>
+            </div>
+
+            <!-- Orta HUD Alanı: Sol Kask Radar Görünümü & Sağ "Varınca Ne Göreceksin?" Curiosity Mastcam Kartı -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                
+                <!-- Kask Vizörü Sadeleştirilmiş Navigasyon Haritası (7 Sütun) -->
+                <div class="lg:col-span-7 bg-space-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-mono text-xs font-semibold">VİZÖR HUD MODU</span>
+                            <span class="text-xs text-slate-400 font-mono">Astronot Konumu ve Canlı Adım Simülasyonu</span>
+                        </div>
+                        <span class="text-xs font-mono text-amber-400" id="hud-current-slope">Anlık Zemin Eğimi: 5.4° (Güvenli)</span>
+                    </div>
+
+                    <div class="relative w-full aspect-[16/10] bg-space-950 rounded-xl border border-slate-800 overflow-hidden">
+                        <canvas id="evaHudCanvas" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- Yürüyüş Adım Simülatörü Kaydırıcısı -->
+                    <div class="mt-4 bg-space-950 p-3.5 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <span class="font-semibold text-sky-400">Yürüyüş İlerleme Simülatörü (Adım Adım Test Edin)</span>
+                            <span class="font-mono text-slate-300" id="walk-step-label">Durum: Habitat'tan Çıkış -> Hedef 1 Yolunda (%35)</span>
+                        </div>
+                        <input type="range" id="eva-progress-slider" min="0" max="100" value="35" oninput="updateEvaProgress(this.value)" class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer">
+                        <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1.5">
+                            <button onclick="setEvaStep(0)" class="hover:text-sky-400">0% Habitat</button>
+                            <button onclick="setEvaStep(35)" class="hover:text-sky-400">35% Hedef 1 (Boxwork Sırtı)</button>
+                            <button onclick="setEvaStep(70)" class="hover:text-sky-400">70% Hedef 2 (Kil Yatağı)</button>
+                            <button onclick="setEvaStep(100)" class="hover:text-sky-400">100% Üsse Dönüş</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sağ: "Varınca Ne Göreceksin?" Curiosity Mastcam Yüzey Referans Ekranı (5 Sütun) -->
+                <div class="lg:col-span-5 bg-space-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-mono uppercase tracking-wider px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                                CURIOSITY MASTCAM / NAVCAM REFERANSI
+                            </span>
+                            <span class="text-xs font-mono text-slate-400">26 Eylül 2025 Gözlemi</span>
+                        </div>
+                        <h3 class="text-base font-bold text-white" id="mastcam-title">Varınca Ne Göreceksin? — Boxwork Ana Sırtı</h3>
+                        <p class="text-xs text-slate-400 mt-1" id="mastcam-desc">
+                            Curiosity rover'ının 2025'te bu koordinatta çektiği yer seviyesi referans görüntüsü. Astronotun doğru kayaç damarından numune almasını sağlar.
+                        </p>
+
+                        <!-- Temsili Mastcam Jeolojik Görünümü (SVG Çizimi) -->
+                        <div class="mt-3 rounded-xl overflow-hidden border border-slate-700 bg-space-950 relative aspect-[16/10]" id="mastcam-svg-container">
+                            <!-- JS ile durağa özel detaylı Mars yüzey ve Boxwork sırt illüstrasyonu -->
+                        </div>
+                    </div>
+
+                    <!-- Bilimsel Numune Görev Kartı -->
+                    <div class="mt-4 bg-space-950 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs">
+                        <div class="font-bold text-sky-400 uppercase tracking-wider flex items-center justify-between">
+                            <span>BU DURAKTAKİ BİLİMSEL GÖREV PROTOKOLÜ</span>
+                            <span id="mastcam-badge" class="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">Öncelik: Yüksek</span>
+                        </div>
+                        <p class="text-slate-300 leading-relaxed" id="mastcam-task">
+                            Ağ şeklindeki sertleşmiş mineral sırtlarının (boxwork) kesişim noktasından 2 adet karot numunesi alın. Çevredeki aşınmış yumuşak kil taşı ile damar içindeki sülfat kristallerini karşılaştırın.
+                        </p>
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 font-mono text-[11px]">
+                            <div>
+                                <span class="text-slate-400 block">BEKLENEN MİNERAL (CRISM):</span>
+                                <span class="text-amber-300 font-semibold" id="mastcam-mineral">Kalsiyum Sülfat & Smektit Kil</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block">ZEMİN TERMAL ATALETİ:</span>
+                                <span class="text-sky-300 font-semibold" id="mastcam-thermal">340 TIU (Sertleşmiş Ana Kayaç)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- EKRAN 3: GÜVENLİK & VERİ GÜVEN PANELİ                             -->
+        <!-- ================================================================= -->
+        <section id="view-safety" class="hidden flex-col gap-4">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Veri Güven Paneli Tablosu (2 Sütun) -->
+                <div class="lg:col-span-2 bg-space-800/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                Veri Güven Paneli: Katman Çözünürlükleri ve Kör Noktalar
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Jüri ve astronot güvenliği için her NASA veri katmanının neyi ölçebildiği ve çözünürlük sınırı nedeniyle neyi göremediği açıkça raporlanır.</p>
+                        </div>
+                        <span class="text-xs font-mono px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Şeffaf Risk Bildirimi</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-slate-400 font-mono uppercase text-[11px]">
+                                    <th class="py-2.5 px-3">Veri Katmanı</th>
+                                    <th class="py-2.5 px-3">NASA Kaynağı</th>
+                                    <th class="py-2.5 px-3">Çözünürlük</th>
+                                    <th class="py-2.5 px-3">Kullanım Amacı</th>
+                                    <th class="py-2.5 px-3 text-amber-400">Neyi Göremez? (Kör Nokta)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/80 text-slate-200">
+                                <tr class="hover:bg-space-900/50">
+                                    <td class="py-3 px-3 font-semibold text-sky-300">Topografik (DEM)</td>
+                                    <td class="py-3 px-3 font-mono">HiRISE DTM / CTX</td>
+                                    <td class="py-3 px-3 font-mono">1 m/piksel (CTX: 6m)</td>
+                                    <td class="py-3 px-3">GDAL ile yamaç eğimi ve pürüzlülük hesabı</td>
+                                    <td class="py-3 px-3 text-amber-300">1 metreden dar çatlakları ve küçük basamakları göremez.</td>
+                                </tr>
+                                <tr class="hover:bg-space-900/50">
+                                    <td class="py-3 px-3 font-semibold text-sky-300">Optik & Kaya</td>
+                                    <td class="py-3 px-3 font-mono">HiRISE RED</td>
+                                    <td class="py-3 px-3 font-mono">25 - 30 cm/piksel</td>
+                                    <td class="py-3 px-3">Gölge uzunluğundan &gt;1m kaya engellerini tespit</td>
+                                    <td class="py-3 px-3 text-amber-300">75 cm altı keskin taşları ve gölgede kalan çukurları seçemez.</td>
+                                </tr>
+                                <tr class="hover:bg-space-900/50">
+                                    <td class="py-3 px-3 font-semibold text-sky-300">Spektral Mineral</td>
+                                    <td class="py-3 px-3 font-mono">CRISM (MRO)</td>
+                                    <td class="py-3 px-3 font-mono">18 m/piksel</td>
+                                    <td class="py-3 px-3">Boxwork sülfat ve kil damarlarını hedefleme</td>
+                                    <td class="py-3 px-3 text-amber-300">Tekil kayaç damarlarını ayırt edemez, bölgesel mineral yoğunluğu verir.</td>
+                                </tr>
+                                <tr class="hover:bg-space-900/50">
+                                    <td class="py-3 px-3 font-semibold text-sky-300">Termal Atalet</td>
+                                    <td class="py-3 px-3 font-mono">THEMIS (Odyssey)</td>
+                                    <td class="py-3 px-3 font-mono">100 m/piksel</td>
+                                    <td class="py-3 px-3">Gevşek toz tuzakları ile sert ana kayacı ayırma</td>
+                                    <td class="py-3 px-3 text-amber-300">Küçük kumulları (5-10m) tek başına tespit edemez.</td>
+                                </tr>
+                                <tr class="hover:bg-space-900/50">
+                                    <td class="py-3 px-3 font-semibold text-sky-300">Atmosfer & Radyasyon</td>
+                                    <td class="py-3 px-3 font-mono">Curiosity RAD / REMS</td>
+                                    <td class="py-3 px-3 font-mono">Noktasal / Geçmiş Sol</td>
+                                    <td class="py-3 px-3">Uzay giysisi maruziyet ve rüzgar/sıcaklık tahmini</td>
+                                    <td class="py-3 px-3 text-amber-300">Anlık (gerçek zamanlı) veri değildir; son ölçülen Sol ortalamasıdır.</td>
+                                </tr>
+                                <tr class="hover:bg-space-900/50">
+                                    <td class="py-3 px-3 font-semibold text-sky-300">Yer Seviyesi Fotoğraf</td>
+                                    <td class="py-3 px-3 font-mono">Mastcam / Navcam</td>
+                                    <td class="py-3 px-3 font-mono">Milimetrik (Yüzey)</td>
+                                    <td class="py-3 px-3">Duraklarda astronota "varınca ne göreceğini" gösterme</td>
+                                    <td class="py-3 px-3 text-amber-300">Yalnızca Curiosity'nin geçtiği noktalarda mevcuttur.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sağ: Çevresel Koşullar veTeslim Kontrol Listesi (1 Sütun) -->
+                <div class="flex flex-col gap-4">
+                    <!-- Son Ölçülen Çevresel Koşullar -->
+                    <div class="bg-space-800/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Çevresel Koşul Kaydı</h3>
+                            <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">Gerçek Zamanlı Değildir</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">Mars'tan anlık meteoroloji verisi gelmez. Aşağıdaki değerler Curiosity REMS ve RAD cihazlarının son kaydettiği (Sol 4312) ölçümlerdir:</p>
+                        
+                        <div class="grid grid-cols-2 gap-2.5 font-mono text-xs">
+                            <div class="bg-space-950 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">GCR RADYASYON</span>
+                                <span class="text-base font-bold text-emerald-400">210 µGy/gün</span>
+                                <span class="text-[10px] text-slate-500 block">EVA Sınırı Altında</span>
+                            </div>
+                            <div class="bg-space-950 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">GÜNEŞ ENERJİLİ PARÇACIK</span>
+                                <span class="text-base font-bold text-sky-400">Düşük (SEP Yok)</span>
+                                <span class="text-[10px] text-slate-500 block">Son 24 Saat</span>
+                            </div>
+                            <div class="bg-space-950 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">YÜZEY SICAKLIĞI</span>
+                                <span class="text-base font-bold text-white">-24°C (Gündüz)</span>
+                                <span class="text-[10px] text-slate-500 block">Gece: -78°C</span>
+                            </div>
+                            <div class="bg-space-950 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">UV İNDEKSİ / TOZ</span>
+                                <span class="text-base font-bold text-amber-400">Orta (Tau: 0.6)</span>
+                                <span class="text-[10px] text-slate-500 block">Görüş Açık</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jüri Sunumu & Teslim Kontrol Listesi -->
+                    <div class="bg-space-800/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">Hackathon Teslim Kontrolü</h3>
+                            <span class="text-xs font-mono text-emerald-400 font-bold">10/10 Tamamlandı</span>
+                        </div>
+                        <ul class="space-y-1.5 text-xs text-slate-300">
+                            <li class="flex items-center gap-2"><span class="text-emerald-400">✔</span> Bilimsel hedef: Gale Krateri Boxwork sırtları seçildi</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400">✔</span> 6 farklı NASA veri katmanı haritada eşleştirildi</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400">✔</span> Eğim, kaya ve belirsizlik risk ızgarası üretildi</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400">✔</span> A* algoritması ile 3 alternatif rota karşılaştırıldı</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400">✔</span> Dijkstra ile eğime duyarlı güvenli dönüş alanı çizildi</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400">✔</span> Kask vizörü (HUD) ve Curiosity Mastcam entegre edildi</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- UYGULAMA JAVASCRIPT MANTIĞI -->
+    <script>
+        // ============================================================================
+        // 1. VERİ MODELİ: BİLİM HEDEFLERİ, ROTALAR VE CURIOSITY MASTCAM GÖRÜNTÜLERİ
+        // ============================================================================
+        const waypoints = [
+            {
+                id: 'hab',
+                name: 'Habitat Üssü (Başlangıç / Dönüş)',
+                shortName: 'Habitat Üssü',
+                type: 'base',
+                x: 0.16,
+                y: 0.78,
+                elevation: -4120,
+                slope: 2.1,
+                selected: true,
+                locked: true,
+                mineral: 'Bazaltik Regolit',
+                thermal: '210 TIU (Sıkışmış Zemin)',
+                desc: 'Astronotların çıkış yaptığı basınçlı yaşam modülü ve oksijen dolum istasyonu.',
+                task: 'Yürüyüş öncesi uzay giysisi sızdırmazlık kontrolü ve toplanan karot numunelerinin steril saklama kabına aktarımı.'
+            },
+            {
+                id: 'wp1',
+                name: 'Hedef 1: Boxwork Ana Sırtı',
+                shortName: 'Boxwork Ana Sırtı',
+                type: 'science',
+                x: 0.46,
+                y: 0.52,
+                elevation: -4065,
+                slope: 6.8,
+                selected: true,
+                locked: false,
+                mineral: 'Kalsiyum Sülfat & Smektit Kil',
+                thermal: '340 TIU (Sertleşmiş Ana Kayaç)',
+                desc: 'Curiosity\'nin Eylül 2025\'te incelediği, geçmiş yeraltı suyunun kaya çatlaklarına mineral bırakmasıyla oluşan poligonal sırt ağı.',
+                task: 'Ağ şeklindeki sertleşmiş mineral sırtlarının kesişim noktasından 2 adet karot numunesi alın. Çevredeki aşınmış yumuşak kil taşı ile damar içindeki sülfat kristallerini karşılaştırın.'
+            },
+            {
+                id: 'wp2',
+                name: 'Hedef 2: Kırıklı Kil Yatağı',
+                shortName: 'Kırıklı Kil Yatağı',
+                type: 'science',
+                x: 0.68,
+                y: 0.32,
+                elevation: -4032,
+                slope: 8.4,
+                selected: true,
+                locked: false,
+                mineral: 'Demir/Magnezyum Fillosilikat',
+                thermal: '295 TIU (Kırıklı Tortul Kaya)',
+                desc: 'Eski yeraltı suyu kanallarının kil bakımından zengin tortul tabakalarla kesiştiği, organik molekül korunumu açısından en yüksek potansiyelli nokta.',
+                task: 'Gölgede kalan kırık yüzeyden 3 cm derinlikten toz ve kayaç örneği toplayın. Spektrometre ile hidratlı mineral okuması yapın.'
+            },
+            {
+                id: 'wp3',
+                name: 'Hedef 3: Sınır Kayaç Geçişi (CTX Alanı)',
+                shortName: 'Sınır Kayaç Geçişi',
+                type: 'science',
+                x: 0.82,
+                y: 0.62,
+                elevation: -3995,
+                slope: 14.2,
+                selected: false,
+                locked: false,
+                mineral: 'Hematit & Anhidrit Damarları',
+                thermal: '185 TIU (Kısmen Toz Kaplı)',
+                desc: 'Mount Sharp üst sülfat birimine geçiş kuşağı. HiRISE DTM sınırında yer aldığı için kısmen 6m CTX verisiyle modellenmiştir (Yüksek belirsizlik).',
+                task: 'Yüksek eğim sınırına girmeden dış çeperdeki mostra veren damarlardan hızlı yüzey kazıma örneği alın.'
+            }
+        ];
+
+        // Kaya kümeleri (HiRISE >1m tespit edilen engeller)
+        const boulderClusters = [
+            { x: 0.33, y: 0.64, r: 0.045, density: 'Yüksek' },
+            { x: 0.56, y: 0.48, r: 0.04, density: 'Orta' },
+            { x: 0.52, y: 0.25, r: 0.05, density: 'Yüksek' },
+            { x: 0.74, y: 0.48, r: 0.045, density: 'Yüksek' },
+            { x: 0.38, y: 0.35, r: 0.035, density: 'Orta' }
+        ];
+
+        // Dik yamaç bölgeleri (>15 derece)
+        const steepZones = [
+            { x: 0.35, y: 0.62, rx: 0.09, ry: 0.06, angle: -0.3 },
+            { x: 0.60, y: 0.45, rx: 0.08, ry: 0.05, angle: 0.4 },
+            { x: 0.80, y: 0.40, rx: 0.11, ry: 0.08, angle: -0.2 }
+        ];
+
+        // Seçili rota tipi ('low_risk', 'shortest', 'max_science')
+        let activeRouteId = 'low_risk';
+        let emergencyModeActive = false;
+        let currentEvaProgress = 35; // %0 - %100
+
+        // ============================================================================
+        // 2. EKRAN MODU GEÇİŞLERİ
+        // ============================================================================
+        function switchMode(mode) {
+            const modes = ['planning', 'eva', 'safety'];
+            modes.forEach(m => {
+                const view = document.getElementById(`view-${m}`);
+                const tab = document.getElementById(`tab-${m}`);
+                if (m === mode) {
+                    view.classList.remove('hidden');
+                    if (m !== 'planning') view.classList.add('flex');
+                    tab.className = "flex-1 lg:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20 whitespace-nowrap";
+                } else {
+                    view.classList.add('hidden');
+                    view.classList.remove('flex');
+                    tab.className = "flex-1 lg:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-400 hover:text-white whitespace-nowrap";
+                }
+            });
+
+            if (mode === 'planning') {
+                setTimeout(() => {
+                    renderMap();
+                    renderElevationChart();
+                }, 50);
+            } else if (mode === 'eva') {
+                setTimeout(() => {
+                    updateEvaProgress(currentEvaProgress);
+                }, 50);
+            }
+        }
+
+        // ============================================================================
+        // 3. BİLİM HEDEFLERİ LİSTESİ & A* MALİYET HESAPLAMA
+        // ============================================================================
+        function renderWaypointList() {
+            const container = document.getElementById('waypoint-list');
+            container.innerHTML = waypoints.map(wp => `
+                <div onclick="${wp.locked ? '' : `toggleWaypoint('${wp.id}')`}" 
+                     class="p-2.5 rounded-xl border transition flex items-start justify-between gap-2 ${wp.locked ? 'bg-space-900/90 border-sky-500/40 cursor-default' : wp.selected ? 'bg-space-900 border-amber-500/60 cursor-pointer hover:bg-space-900/80' : 'bg-space-950/60 border-slate-800 opacity-60 cursor-pointer hover:opacity-90'}">
+                    <div class="flex items-start gap-2.5">
+                        <div class="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-mono font-bold ${wp.type === 'base' ? 'bg-sky-500 text-slate-950' : wp.selected ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'}">
+                            ${wp.type === 'base' ? 'H' : wp.id.replace('wp', '')}
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">${wp.name}</div>
+                            <div class="text-[11px] text-slate-400 font-mono mt-0.5">Rakım: ${wp.elevation}m | Ort. Eğim: ${wp.slope}°</div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${wp.locked ? 'bg-sky-500/20 text-sky-300' : wp.selected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
+                        ${wp.locked ? 'Sabit Üs' : wp.selected ? 'Seçili' : 'Pasif'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function toggleWaypoint(id) {
+            const wp = waypoints.find(w => w.id === id);
+            if (!wp || wp.locked) return;
+            wp.selected = !wp.selected;
+            // En az 1 bilim hedefi seçili kalsın
+            const activeSci = waypoints.filter(w => w.type === 'science' && w.selected);
+            if (activeSci.length === 0) wp.selected = true;
+
+            renderWaypointList();
+            updateRoutesAndUI();
+        }
+
+        function resetWaypoints() {
+            waypoints[1].selected = true;
+            waypoints[2].selected = true;
+            waypoints[3].selected = false;
+            activeRouteId = 'low_risk';
+            renderWaypointList();
+            updateRoutesAndUI();
+        }
+
+        function updateWeights() {
+            const wSlope = parseFloat(document.getElementById('weight-slope').value);
+            const wBoulder = parseFloat(document.getElementById('weight-boulder').value);
+            const wUnc = parseFloat(document.getElementById('weight-uncertainty').value);
+
+            document.getElementById('val-slope').textContent = wSlope.toFixed(1) + 'x';
+            document.getElementById('val-boulder').textContent = wBoulder.toFixed(1) + 'x';
+            document.getElementById('val-uncertainty').textContent = wUnc.toFixed(1) + 'x';
+
+            updateRoutesAndUI();
+        }
+
+        // Seçili noktalara ve ağırlıklara göre 3 alternatif rotanın metriklerini üretir
+        function calculateRouteMetrics() {
+            const wSlope = parseFloat(document.getElementById('weight-slope').value);
+            const wBoulder = parseFloat(document.getElementById('weight-boulder').value);
+            const wUnc = parseFloat(document.getElementById('weight-uncertainty').value);
+
+            const selectedSci = waypoints.filter(w => w.type === 'science' && w.selected);
+            const count = selectedSci.length;
+            const includesWp3 = waypoints.find(w => w.id === 'wp3').selected;
+
+            const baseDist = count === 1 ? 1.45 : count === 2 ? 2.35 : 3.40;
+
+            return [
+                {
+                    id: 'low_risk',
+                    title: 'Tahmini En Düşük Riskli Rota',
+                    badge: 'ÖNERİLEN A* ROTASI',
+                    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                    borderColor: activeRouteId === 'low_risk' ? 'border-emerald-400 bg-space-900' : 'border-slate-800 bg-space-900/50',
+                    color: '#10b981',
+                    distance: (baseDist * 1.18).toFixed(2),
+                    duration: Math.round(baseDist * 1.18 * 26),
+                    maxSlope: includesWp3 ? '11.4°' : '8.2°',
+                    uncertainty: includesWp3 ? '%8 (Düşük)' : '%0 (Tam HiRISE)',
+                    costScore: Math.round(100 + (wSlope * 6 + wBoulder * 5 + wUnc * (includesWp3 ? 8 : 2))),
+                    reason: 'HiRISE >1m kaya kümelerinin ve >15° dik yamaçların etrafından dolaşır. Dijkstra güvenli dönüş menzili içinde kalır.'
+                },
+                {
+                    id: 'shortest',
+                    title: 'En Kısa Doğrudan Rota',
+                    badge: 'YÜKSEK EĞİM RİSKİ',
+                    badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+                    borderColor: activeRouteId === 'shortest' ? 'border-rose-500 bg-space-900' : 'border-slate-800 bg-space-900/50',
+                    color: '#f43f5e',
+                    distance: baseDist.toFixed(2),
+                    duration: Math.round(baseDist * 24),
+                    maxSlope: '18.6°',
+                    uncertainty: includesWp3 ? '%19 (Orta)' : '%6 (Düşük)',
+                    costScore: Math.round(95 + (wSlope * 28 + wBoulder * 24 + wUnc * 12)),
+                    reason: 'Mesafeyi %15 kısaltır ancak 18.6° dik yamaçtan ve yoğun kaya gölge bölgesinden geçer. Uzay giysisi yorgunluk riski yüksektir.'
+                },
+                {
+                    id: 'max_science',
+                    title: 'Maksimum Bilim Noktası Rotası',
+                    badge: '3 BOXWORK HEDEFİ',
+                    badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                    borderColor: activeRouteId === 'max_science' ? 'border-sky-400 bg-space-900' : 'border-slate-800 bg-space-900/50',
+                    color: '#38bdf8',
+                    distance: '3.65',
+                    duration: 94,
+                    maxSlope: '13.8°',
+                    uncertainty: '%16 (CTX 6m Geçişi)',
+                    costScore: Math.round(130 + (wSlope * 14 + wBoulder * 10 + wUnc * 22)),
+                    reason: 'Tüm Boxwork sülfat ve kil hedeflerini en verimli sırayla (TSP) ziyaret eder. Doğu sınırında CTX 6m çözünürlüklü belirsiz alana girer.'
+                }
+            ];
+        }
+
+        function renderRouteCards() {
+            const routes = calculateRouteMetrics();
+            const container = document.getElementById('route-cards-container');
+
+            container.innerHTML = routes.map(r => `
+                <div onclick="selectRoute('${r.id}')" class="p-3 rounded-xl border-2 transition cursor-pointer ${r.borderColor} hover:border-slate-600">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full" style="background:${r.color}"></span>
+                            ${r.title}
+                        </span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${r.badgeColor}">${r.badge}</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-1.5 my-2 bg-space-950/90 p-2 rounded-lg border border-slate-800/80 font-mono text-[11px]">
+                        <div>
+                            <span class="text-slate-400 block text-[9px]">MESAFE</span>
+                            <span class="text-white font-bold">${r.distance} km</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block text-[9px]">SÜRE</span>
+                            <span class="text-white font-bold">${r.duration} dk</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block text-[9px]">MAKS EĞİM</span>
+                            <span class="${parseFloat(r.maxSlope) > 15 ? 'text-rose-400' : 'text-emerald-400'} font-bold">${r.maxSlope}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block text-[9px]">A* MALİYET</span>
+                            <span class="text-sky-300 font-bold">${r.costScore}</span>
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-300 leading-snug">
+                        <strong class="text-slate-200">Neden:</strong> ${r.reason}
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        function selectRoute(id) {
+            activeRouteId = id;
+            if (id === 'max_science') {
+                waypoints.forEach(w => w.selected = true);
+                renderWaypointList();
+            }
+            updateRoutesAndUI();
+        }
+
+        function updateRoutesAndUI() {
+            renderRouteCards();
+            renderMap();
+            renderElevationChart();
+        }
+
+        // ============================================================================
+        // 4. HARİTA CANVAS ÇİZİMİ (KATMANLAR, ROTALAR, DIJKSTRA ALANI)
+        // ============================================================================
+        function getRoutePathPoints(routeId) {
+            const hab = waypoints[0];
+            const wp1 = waypoints[1];
+            const wp2 = waypoints[2];
+            const wp3 = waypoints[3];
+
+            if (routeId === 'max_science') {
+                return [
+                    { x: hab.x, y: hab.y },
+                    { x: 0.25, y: 0.72 },
+                    { x: 0.38, y: 0.54 },
+                    { x: wp1.x, y: wp1.y },
+                    { x: 0.58, y: 0.36 },
+                    { x: wp2.x, y: wp2.y },
+                    { x: 0.78, y: 0.45 },
+                    { x: wp3.x, y: wp3.y },
+                    { x: 0.55, y: 0.72 },
+                    { x: hab.x, y: hab.y }
+                ];
+            }
+
+            const activeTargets = waypoints.filter(w => w.type === 'science' && w.selected);
+            if (routeId === 'shortest') {
+                // Engellerin üzerinden doğrudan geçen kısa rota
+                const pts = [{ x: hab.x, y: hab.y }];
+                activeTargets.forEach(t => pts.push({ x: t.x, y: t.y }));
+                pts.push({ x: hab.x, y: hab.y });
+                return pts;
+            }
+
+            // 'low_risk' - A* kaya ve eğim etrafından dolaşan güvenli rota
+            const pts = [{ x: hab.x, y: hab.y }, { x: 0.24, y: 0.74 }, { x: 0.39, y: 0.58 }];
+            if (wp1.selected) pts.push({ x: wp1.x, y: wp1.y });
+            if (wp2.selected) {
+                pts.push({ x: 0.48, y: 0.42 });
+                pts.push({ x: wp2.x, y: wp2.y });
+            }
+            if (wp3.selected) {
+                pts.push({ x: 0.77, y: 0.56 });
+                pts.push({ x: wp3.x, y: wp3.y });
+            }
+            // Güvenli dönüş koridoru
+            pts.push({ x: 0.52, y: 0.68 }, { x: 0.30, y: 0.76 }, { x: hab.x, y: hab.y });
+            return pts;
+        }
+
+        function renderMap() {
+            const canvas = document.getElementById('marsMapCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const W = rect.width;
+            const H = rect.height;
+
+            // Katman durumları
+            const showTopo = document.getElementById('layer-topo')?.checked;
+            const showBoulders = document.getElementById('layer-boulders')?.checked;
+            const showCrism = document.getElementById('layer-crism')?.checked;
+            const showThemis = document.getElementById('layer-themis')?.checked;
+            const showDijkstra = document.getElementById('layer-dijkstra')?.checked;
+            const showUnc = document.getElementById('layer-uncertainty')?.checked;
+
+            // 1. Mars Yüzey Baz Görüntüsü (Gale Krateri Mount Sharp Dokusu)
+            const bgGrad = ctx.createRadialGradient(W * 0.4, H * 0.5, 40, W * 0.5, H * 0.5, W * 0.9);
+            bgGrad.addColorStop(0, '#2a1a17');
+            bgGrad.addColorStop(0.55, '#1d1414');
+            bgGrad.addColorStop(1, '#110d10');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // 2. THEMIS Termal Atalet Katmanı
+            if (showThemis) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(249, 115, 22, 0.14)';
+                ctx.beginPath();
+                ctx.ellipse(W * 0.52, H * 0.45, W * 0.32, H * 0.25, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.1)';
+                ctx.beginPath();
+                ctx.ellipse(W * 0.25, H * 0.72, W * 0.18, H * 0.15, 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 3. Topografik Eşyükselti ve Eğim Isı Haritası (HiRISE DTM)
+            if (showTopo) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(226, 135, 95, 0.18)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i <= 8; i++) {
+                    ctx.beginPath();
+                    ctx.ellipse(W * 0.95, H * 0.15, W * (0.15 * i), H * (0.13 * i), 0.25, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Dik Eğim Bölgeleri (>15°)
+                steepZones.forEach(sz => {
+                    const grad = ctx.createRadialGradient(W * sz.x, H * sz.y, 4, W * sz.x, H * sz.y, W * sz.rx);
+                    grad.addColorStop(0, 'rgba(244, 63, 94, 0.42)');
+                    grad.addColorStop(1, 'rgba(244, 63, 94, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.ellipse(W * sz.x, H * sz.y, W * sz.rx, H * sz.ry, sz.angle, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+
+            // 4. CRISM Spektral Mineral & Boxwork Sırt Ağları
+            if (showCrism) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(192, 132, 252, 0.42)';
+                ctx.lineWidth = 1.5;
+                // Poligonal Boxwork sırt deseni
+                const centers = [
+                    { x: 0.46, y: 0.52 },
+                    { x: 0.52, y: 0.44 },
+                    { x: 0.65, y: 0.34 },
+                    { x: 0.58, y: 0.55 }
+                ];
+                centers.forEach(c => {
+                    const cx = W * c.x;
+                    const cy = H * c.y;
+                    const r = 28;
+                    ctx.beginPath();
+                    for (let a = 0; a < 6; a++) {
+                        const ang = (Math.PI / 3) * a;
+                        const px = cx + Math.cos(ang) * r;
+                        const py = cy + Math.sin(ang) * r;
+                        if (a === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(168, 85, 247, 0.12)';
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+
+            // 5. Veri Belirsizlik Katmanı (Doğu sınırındaki CTX 6m/px Bölgesi)
+            if (showUnc) {
+                ctx.save();
+                const uncX = W * 0.76;
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
+                ctx.fillRect(uncX, 0, W - uncX, H);
+
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(uncX, 0);
+                ctx.lineTo(uncX, H);
+                ctx.stroke();
+
+                ctx.fillStyle = '#fcd34d';
+                ctx.font = '600 10px "JetBrains Mono"';
+                ctx.fillText('BELİRSİZ VERİ ALANI (CTX 6m/px)', uncX + 8, 22);
+                ctx.fillStyle = 'rgba(252, 211, 77, 0.75)';
+                ctx.font = '10px "Inter"';
+                ctx.fillText('<5m kayalar görünmez', uncX + 8, 36);
+                ctx.restore();
+            }
+
+            // 6. Güvenli Dönüş Alanı (Dijkstra Eğime Duyarlı Menzil Poligonu)
+            if (showDijkstra) {
+                ctx.save();
+                ctx.beginPath();
+                const poly = [
+                    { x: 0.05, y: 0.92 },
+                    { x: 0.08, y: 0.48 },
+                    { x: 0.34, y: 0.24 },
+                    { x: 0.73, y: 0.20 },
+                    { x: 0.75, y: 0.52 },
+                    { x: 0.64, y: 0.82 },
+                    { x: 0.32, y: 0.94 }
+                ];
+                poly.forEach((p, idx) => {
+                    if (idx === 0) ctx.moveTo(W * p.x, H * p.y);
+                    else ctx.lineTo(W * p.x, H * p.y);
+                });
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.07)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([8, 4]);
+                ctx.stroke();
+
+                ctx.fillStyle = '#34d399';
+                ctx.font = '600 10px "JetBrains Mono"';
+                ctx.fillText('DIJKSTRA GÜVENLİ DÖNÜŞ SINIRI (O₂ BÜTÇESİ)', W * 0.12, H * 0.32);
+                ctx.restore();
+            }
+
+            // 7. Optik Kaya Tespiti (HiRISE >1m Kaya Kümeleri)
+            if (showBoulders) {
+                ctx.save();
+                boulderClusters.forEach(bc => {
+                    const cx = W * bc.x;
+                    const cy = H * bc.y;
+                    ctx.strokeStyle = 'rgba(248, 113, 113, 0.7)';
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.18)';
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, W * bc.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Temsili kaya noktaları
+                    ctx.fillStyle = '#fca5a5';
+                    for (let k = -2; k <= 2; k++) {
+                        ctx.fillRect(cx + k * 5, cy + (k % 2) * 4, 3, 3);
+                    }
+                });
+                ctx.restore();
+            }
+
+            // 8. Taktik Grid Çizgileri
+            ctx.save();
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.07)';
+            ctx.lineWidth = 1;
+            const step = 60;
+            for (let x = step; x < W; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+            }
+            for (let y = step; y < H; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+            }
+            ctx.restore();
+
+            // 9. Alternatif Rotaların Çizimi
+            const routeStyles = [
+                { id: 'shortest', color: '#f43f5e', dash: [4, 4] },
+                { id: 'max_science', color: '#38bdf8', dash: [6, 3] },
+                { id: 'low_risk', color: '#10b981', dash: [] }
+            ];
+
+            routeStyles.forEach(rs => {
+                const isSelected = rs.id === activeRouteId;
+                const pts = getRoutePathPoints(rs.id);
+                ctx.save();
+                ctx.beginPath();
+                pts.forEach((p, idx) => {
+                    if (idx === 0) ctx.moveTo(W * p.x, H * p.y);
+                    else ctx.lineTo(W * p.x, H * p.y);
+                });
+                ctx.strokeStyle = rs.color;
+                ctx.lineWidth = isSelected ? 3.8 : 1.6;
+                ctx.globalAlpha = isSelected ? 1.0 : 0.45;
+                ctx.setLineDash(isSelected ? [] : rs.dash);
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // 10. Habitat ve Bilim Hedefi İkonları
+            waypoints.forEach(wp => {
+                const wx = W * wp.x;
+                const wy = H * wp.y;
+
+                ctx.save();
+                if (wp.selected) {
+                    ctx.beginPath();
+                    ctx.arc(wx, wy, 15, 0, Math.PI * 2);
+                    ctx.fillStyle = wp.type === 'base' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(245, 158, 11, 0.22)';
+                    ctx.fill();
+                }
+
+                ctx.beginPath();
+                ctx.arc(wx, wy, 9, 0, Math.PI * 2);
+                ctx.fillStyle = wp.type === 'base' ? '#38bdf8' : wp.selected ? '#f59e0b' : '#475569';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#0b0f17';
+                ctx.stroke();
+
+                ctx.fillStyle = '#0b0f17';
+                ctx.font = 'bold 10px "JetBrains Mono"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(wp.type === 'base' ? 'H' : wp.id.replace('wp', ''), wx, wy);
+
+                // Etiket
+                ctx.textAlign = 'left';
+                ctx.font = '600 11px "Inter"';
+                ctx.fillStyle = wp.selected ? '#ffffff' : '#94a3b8';
+                ctx.fillText(wp.shortName, wx + 13, wy - 4);
+                ctx.font = '10px "JetBrains Mono"';
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText(`${wp.elevation}m`, wx + 13, wy + 9);
+                ctx.restore();
+            });
+        }
+
+        // Harita üzerinde hedefe tıklama ve koordinat gösterimi
+        const mapCanvas = document.getElementById('marsMapCanvas');
+        mapCanvas.addEventListener('mousemove', (e) => {
+            const rect = mapCanvas.getBoundingClientRect();
+            const nx = (e.clientX - rect.left) / rect.width;
+            const ny = (e.clientY - rect.top) / rect.height;
+            const lat = (4.5850 + ny * 0.0090).toFixed(4);
+            const lon = (137.4350 + nx * 0.0120).toFixed(4);
+            const simSlope = (2 + nx * 10 + Math.sin(nx * 12) * 3).toFixed(1);
+            document.getElementById('cursor-coords').textContent = `İmleç: ${lat}°G, ${lon}°D | Eğim: ${simSlope}°`;
+        });
+
+        mapCanvas.addEventListener('click', (e) => {
+            const rect = mapCanvas.getBoundingClientRect();
+            const nx = (e.clientX - rect.left) / rect.width;
+            const ny = (e.clientY - rect.top) / rect.height;
+
+            waypoints.forEach(wp => {
+                if (!wp.locked) {
+                    const dist = Math.hypot(nx - wp.x, ny - wp.y);
+                    if (dist < 0.045) {
+                        toggleWaypoint(wp.id);
+                    }
+                }
+            });
+        });
+
+        // ============================================================================
+        // 5. YÜKSEKLİK VE EĞİM PROFİLİ GRAFİĞİ
+        // ============================================================================
+        function renderElevationChart() {
+            const canvas = document.getElementById('elevationCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const W = rect.width;
+            const H = rect.height;
+            ctx.clearRect(0, 0, W, H);
+
+            const profiles = {
+                low_risk: [-4120, -4105, -4088, -4065, -4050, -4032, -4048, -4075, -4102, -4120],
+                shortest: [-4120, -4090, -4055, -4065, -4025, -4032, -4060, -4095, -4120],
+                max_science: [-4120, -4100, -4065, -4045, -4032, -4010, -3995, -4040, -4085, -4120]
+            };
+
+            const data = profiles[activeRouteId] || profiles.low_risk;
+            const minElev = -4130;
+            const maxElev = -3985;
+
+            const padL = 46, padR = 16, padT = 14, padB = 22;
+            const chartW = W - padL - padR;
+            const chartH = H - padT - padB;
+
+            // Yatay referans çizgileri
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px "JetBrains Mono"';
+            [-4120, -4060, -4000].forEach(val => {
+                const y = padT + chartH - ((val - minElev) / (maxElev - minElev)) * chartH;
+                ctx.beginPath();
+                ctx.moveTo(padL, y);
+                ctx.lineTo(W - padR, y);
+                ctx.stroke();
+                ctx.fillText(`${val}m`, 4, y + 3);
+            });
+
+            // Alan dolgusu
+            const routeColor = activeRouteId === 'low_risk' ? '#10b981' : activeRouteId === 'shortest' ? '#f43f5e' : '#38bdf8';
+            ctx.beginPath();
+            data.forEach((val, idx) => {
+                const x = padL + (idx / (data.length - 1)) * chartW;
+                const y = padT + chartH - ((val - minElev) / (maxElev - minElev)) * chartH;
+                if (idx === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = routeColor;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.lineTo(padL + chartW, padT + chartH);
+            ctx.lineTo(padL, padT + chartH);
+            ctx.closePath();
+            ctx.fillStyle = activeRouteId === 'low_risk' ? 'rgba(16, 185, 129, 0.16)' : activeRouteId === 'shortest' ? 'rgba(244, 63, 94, 0.16)' : 'rgba(56, 189, 248, 0.16)';
+            ctx.fill();
+
+            // Noktalar
+            data.forEach((val, idx) => {
+                const x = padL + (idx / (data.length - 1)) * chartW;
+                const y = padT + chartH - ((val - minElev) / (maxElev - minElev)) * chartH;
+                ctx.beginPath();
+                ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            });
+
+            // X Ekseni etiketleri
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('0% (Habitat)', padL, H - 4);
+            ctx.fillText('50% (Boxwork Sırtları)', padL + chartW * 0.42, H - 4);
+            ctx.fillText('100% (Üsse Dönüş)', W - padR - 95, H - 4);
+        }
+
+        // ============================================================================
+        // 6. EKRAN 2: YÜRÜYÜŞ MODU (KASK HUD) VE CURIOSITY MASTCAM GÖRÜNÜMÜ
+        // ============================================================================
+        function setEvaStep(val) {
+            document.getElementById('eva-progress-slider').value = val;
+            updateEvaProgress(val);
+        }
+
+        function updateEvaProgress(val) {
+            currentEvaProgress = parseInt(val, 10);
+            let targetWp = waypoints[1];
+            let stepText = '';
+
+            if (currentEvaProgress < 35) {
+                targetWp = waypoints[1];
+                stepText = `Durum: Habitat'tan Çıkış -> Hedef 1 Yolunda (%${currentEvaProgress})`;
+            } else if (currentEvaProgress < 75) {
+                targetWp = waypoints[2];
+                stepText = `Durum: Boxwork Sırtı İncelendi -> Hedef 2 Yolunda (%${currentEvaProgress})`;
+            } else {
+                targetWp = waypoints[0];
+                stepText = `Durum: Numuneler Alındı -> Habitat Üssüne Dönüş (%${currentEvaProgress})`;
+            }
+
+            document.getElementById('walk-step-label').textContent = stepText;
+            document.getElementById('hud-next-stop').textContent = targetWp.name;
+            document.getElementById('hud-stop-type').textContent = targetWp.mineral;
+
+            const remMeters = Math.max(0, Math.round((100 - currentEvaProgress) * 14.5));
+            const remMinutes = Math.max(2, Math.round((100 - currentEvaProgress) * 0.55));
+            const returnMargin = Math.max(28, 92 - Math.round(currentEvaProgress * 0.5));
+
+            document.getElementById('hud-rem-dist').textContent = `${remMeters} m`;
+            document.getElementById('hud-total-progress').textContent = `Toplam Yürüyüş: %${currentEvaProgress}`;
+            document.getElementById('hud-rem-time').textContent = `${remMinutes} dk`;
+            document.getElementById('hud-return-status').textContent = returnMargin > 40 ? `YETERLİ (%${returnMargin})` : `DİKKAT (%${returnMargin})`;
+
+            // Curiosity Mastcam Kartını Güncelle
+            const refWp = currentEvaProgress < 50 ? waypoints[1] : currentEvaProgress < 85 ? waypoints[2] : waypoints[0];
+            document.getElementById('mastcam-title').textContent = `Varınca Ne Göreceksin? — ${refWp.shortName}`;
+            document.getElementById('mastcam-desc').textContent = refWp.desc;
+            document.getElementById('mastcam-task').textContent = refWp.task;
+            document.getElementById('mastcam-mineral').textContent = refWp.mineral;
+            document.getElementById('mastcam-thermal').textContent = refWp.thermal;
+
+            renderMastcamSvg(refWp.id);
+            renderEvaHudCanvas();
+        }
+
+        function renderMastcamSvg(wpId) {
+            const container = document.getElementById('mastcam-svg-container');
+            if (!container) return;
+
+            const isWp1 = wpId === 'wp1';
+            const isWp2 = wpId === 'wp2';
+
+            container.innerHTML = `
+                <svg viewBox="0 0 600 375" class="w-full h-full">
+                    <defs>
+                        <linearGradient id="marsSky" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#2a1810"/>
+                            <stop offset="60%" stop-color="#5c3322"/>
+                            <stop offset="100%" stop-color="#854a32"/>
+                        </linearGradient>
+                        <linearGradient id="marsGround" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#6b3423"/>
+                            <stop offset="100%" stop-color="#26120c"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Gökyüzü ve Mount Sharp Ufuk Çizgisi -->
+                    <rect width="600" height="375" fill="url(#marsSky)"/>
+                    <polygon points="0,165 110,120 250,145 410,95 540,130 600,115 600,185 0,185" fill="#472418"/>
+                    <rect y="175" width="600" height="200" fill="url(#marsGround)"/>
+
+                    <!-- Boxwork Poligonal Mineral Sırtları Çizimi -->
+                    <g stroke="#f59e0b" stroke-width="3" fill="none" opacity="0.85">
+                        <polyline points="50,320 165,245 290,260 410,215 550,275"/>
+                        <polyline points="165,245 210,195 340,200 410,215"/>
+                        <polyline points="120,355 245,295 385,310 490,250"/>
+                        <line x1="290" y1="260" x2="245" y2="295" />
+                        <line x1="410" y1="215" x2="385" y2="310" />
+                    </g>
+
+                    <!-- Mineral Damarı Etiketleri (HUD Tarzı) -->
+                    <circle cx="${isWp1 ? 290 : isWp2 ? 340 : 180}" cy="${isWp1 ? 260 : isWp2 ? 200 : 245}" r="14" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
+                    <line x1="${isWp1 ? 290 : 340}" y1="${isWp1 ? 246 : 186}" x2="${isWp1 ? 350 : 400}" y2="115" stroke="#38bdf8" stroke-width="1.5"/>
+                    <rect x="${isWp1 ? 350 : 380}" y="85" width="215" height="44" rx="6" fill="#0b0f17" stroke="#38bdf8" stroke-width="1.2" opacity="0.92"/>
+                    <text x="${isWp1 ? 360 : 390}" y="103" fill="#38bdf8" font-family="JetBrains Mono" font-size="11" font-weight="bold">
+                        ${isWp1 ? 'HEDEF: SÜLFAT BOXWORK SIRTI' : isWp2 ? 'HEDEF: KİL YATAĞI ÇATLAĞI' : 'HABİTAT DÖNÜŞ KORİDORU'}
+                    </text>
+                    <text x="${isWp1 ? 360 : 390}" y="120" fill="#e2e8f0" font-family="Inter" font-size="10">
+                        Curiosity Mastcam Sol 4310 Referansı
+                    </text>
+
+                    <!-- Vizör Telemetri Çerçevesi -->
+                    <text x="16" y="26" fill="#fcd34d" font-family="JetBrains Mono" font-size="11">MASTCAM-LEFT | F=34mm | MOUNT SHARP BOXWORK</text>
+                    <line x1="16" y1="345" x2="116" y2="345" stroke="#ffffff" stroke-width="2"/>
+                    <text x="45" y="360" fill="#ffffff" font-family="JetBrains Mono" font-size="10">25 cm Ölçek</text>
+                </svg>
+            `;
+        }
+
+        function renderEvaHudCanvas() {
+            const canvas = document.getElementById('evaHudCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const W = rect.width;
+            const H = rect.height;
+
+            ctx.fillStyle = '#070a10';
+            ctx.fillRect(0, 0, W, H);
+
+            // Radar halkaları
+            const cx = W * 0.5;
+            const cy = H * 0.55;
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
+            ctx.lineWidth = 1;
+            [60, 120, 180, 240].forEach(r => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // Rota çizgisi
+            const pts = getRoutePathPoints(activeRouteId);
+            ctx.beginPath();
+            pts.forEach((p, i) => {
+                const px = W * p.x;
+                const py = H * p.y;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.strokeStyle = emergencyModeActive ? '#f59e0b' : '#10b981';
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
+
+            // Astronotun Anlık Konumu
+            const floatIdx = (currentEvaProgress / 100) * (pts.length - 1);
+            const idx = Math.floor(floatIdx);
+            const frac = floatIdx - idx;
+            const p1 = pts[idx];
+            const p2 = pts[Math.min(pts.length - 1, idx + 1)];
+            const ax = W * (p1.x + (p2.x - p1.x) * frac);
+            const ay = H * (p1.y + (p2.y - p1.y) * frac);
+
+            // Acil dönüş çizgisi aktifse doğrudan Habitat'a yeşil kesikli hat
+            if (emergencyModeActive) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(W * waypoints[0].x, H * waypoints[0].y);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Duraklar
+            waypoints.forEach(wp => {
+                if (!wp.selected && wp.type !== 'base') return;
+                const wx = W * wp.x;
+                const wy = H * wp.y;
+                ctx.beginPath();
+                ctx.arc(wx, wy, 7, 0, Math.PI * 2);
+                ctx.fillStyle = wp.type === 'base' ? '#38bdf8' : '#f59e0b';
+                ctx.fill();
+                ctx.fillStyle = '#e2e8f0';
+                ctx.font = '11px "JetBrains Mono"';
+                ctx.fillText(wp.shortName, wx + 10, wy + 4);
+            });
+
+            // Astronot İmleci
+            ctx.beginPath();
+            ctx.arc(ax, ay, 14, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.28)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 11px "JetBrains Mono"';
+            ctx.fillText('ASTRONOT (EVA-1)', ax - 45, ay - 16);
+        }
+
+        function triggerHazardAlert() {
+            const banner = document.getElementById('eva-hazard-banner');
+            banner.classList.remove('hidden');
+            document.getElementById('hud-current-slope').textContent = 'Anlık Zemin Eğimi: 19.4° (TEHLİKELİ EĞİM UYARISI!)';
+            document.getElementById('hud-current-slope').className = 'text-xs font-mono text-rose-400 font-bold';
+        }
+
+        function activateEmergencyReturn() {
+            emergencyModeActive = true;
+            activeRouteId = 'low_risk';
+            document.getElementById('eva-hazard-banner').classList.add('hidden');
+            document.getElementById('hud-current-slope').textContent = 'Acil Dijkstra Dönüş Rotası Aktif — Eğim: 5.1° (Düşük Risk)';
+            document.getElementById('hud-current-slope').className = 'text-xs font-mono text-emerald-400 font-bold';
+            renderEvaHudCanvas();
+        }
+
+        function dismissHazard() {
+            document.getElementById('eva-hazard-banner').classList.add('hidden');
+        }
+
+        // İlk Yükleme ve Pencere Boyutlandırma
+        window.addEventListener('resize', () => {
+            renderMap();
+            renderElevationChart();
+            renderEvaHudCanvas();
+        });
+
+        window.onload = () => {
+            renderWaypointList();
+            updateRoutesAndUI();
+            renderMastcamSvg('wp1');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "mock": true,
+  "habitat": {
+    "id": "habitat",
+    "name": "Habitat (hypothetical)",
+    "x": 120,
+    "y": 140
+  },
+  "stops": [
+    {
+      "id": "s1",
+      "name": "Ridge junction",
+      "type": "science",
+      "x": 380,
+      "y": 420,
+      "description": "Three ridges meet: sample the ridge crest.",
+      "photo": null
+    },
+    {
+      "id": "s2",
+      "name": "Sandy hollow",
+      "type": "science",
+      "x": 560,
+      "y": 700,
+      "description": "Hollow between ridges: sample the floor.",
+      "photo": null
+    },
+    {
+      "id": "s3",
+      "name": "Butte foot",
+      "type": "science",
+      "x": 700,
+      "y": 520,
+      "description": "Layered outcrop at the foot of the butte.",
+      "photo": null
+    }
+  ]
+}
