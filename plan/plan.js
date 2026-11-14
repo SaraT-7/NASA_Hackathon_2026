@@ -1,6 +1,7 @@
 // plan/plan.js — Mission Planner screen (Work stream B).
 import { loadGrid, loadJson, fileUrl, mapBounds, xyToLatLng } from '../shared/data.js';
-import { buildRoute } from '../shared/route.js';
+import { buildRoute, totalEvaS } from '../shared/route.js';
+import { ASSUMPTIONS, formatDuration } from '../shared/walk-model.js';
 import { findMultiStopPath } from './astar.js';
 
 const statusEl = document.getElementById('status');
@@ -11,12 +12,17 @@ const stopsListEl = document.getElementById('stops-list');
 const clearStopsBtn = document.getElementById('clear-stops-btn');
 const sequenceSummaryEl = document.getElementById('sequence-summary');
 const routeAlertEl = document.getElementById('route-alert');
+const routesContainerEl = document.getElementById('routes-container');
 
 let grid = null;
 let habitat = null;
 let allStops = [];
 // Ordered array of selected stop IDs (selection order = visiting order)
 let selectedStopIds = [];
+
+// Currently computed routes and selected route kind ('low_risk' | 'shortest')
+let currentRoutes = { shortest: null, low_risk: null };
+let selectedRouteKind = 'low_risk';
 
 let map = null;
 let routeLayerGroup = null;
@@ -35,6 +41,13 @@ function toggleStop(stopId) {
   }
   renderStopsUI();
   recomputeRoutes();
+}
+
+function selectRouteKind(kind) {
+  if (!currentRoutes[kind]) return;
+  selectedRouteKind = kind;
+  drawRouteLines();
+  renderRouteCards();
 }
 
 function renderStopsUI() {
@@ -95,13 +108,173 @@ function renderStopsUI() {
   }
 }
 
+/**
+ * Build a one-sentence comparison rationale for a route relative to the other alternative.
+ */
+function buildRationale(route, other) {
+  const t = route.totals;
+  const o = other.totals;
+  const dDiff = Math.round(t.distance_m - o.distance_m);
+  const riskA = t.mean_risk != null ? t.mean_risk : 0;
+  const riskB = o.mean_risk != null ? o.mean_risk : 0;
+  const slopeDiff = Math.round(o.max_slope_deg - t.max_slope_deg);
+
+  if (route.kind === 'low_risk') {
+    const distPart = dDiff > 0 ? `${dDiff} m longer` : 'Same distance';
+    const riskDrop = (riskB - riskA).toFixed(1);
+    const slopePart =
+      slopeDiff > 0
+        ? ` and reduces peak slope by ${slopeDiff}°`
+        : `, max slope ${Math.round(t.max_slope_deg)}°`;
+    return `${distPart}, lowers mean estimated risk by ${riskDrop} pts (${riskB.toFixed(1)} → ${riskA.toFixed(1)})${slopePart}.`;
+  } else {
+    const savedM = Math.max(0, Math.round(o.distance_m - t.distance_m));
+    const riskRise = (riskA - riskB).toFixed(1);
+    return `${savedM} m shorter direct path, with +${riskRise} pts higher mean estimated risk and ${Math.round(t.max_slope_deg)}° max slope.`;
+  }
+}
+
+function drawRouteLines() {
+  routeLayerGroup.clearLayers();
+  const { shortest, low_risk } = currentRoutes;
+  if (!shortest || !low_risk) return;
+
+  const isLowRiskSelected = selectedRouteKind === 'low_risk';
+
+  const lowRiskLine = L.polyline(
+    low_risk.points.map((p) => xyToLatLng(p.x, p.y)),
+    {
+      color: '#34d399',
+      weight: isLowRiskSelected ? 6 : 3.5,
+      opacity: isLowRiskSelected ? 0.96 : 0.55,
+    }
+  )
+    .addTo(routeLayerGroup)
+    .bindTooltip(
+      `Lowest estimated risk: ${Math.round(low_risk.totals.distance_m)} m · mean risk ${low_risk.totals.mean_risk.toFixed(1)}`
+    );
+  lowRiskLine.on('click', () => selectRouteKind('low_risk'));
+
+  const shortestLine = L.polyline(
+    shortest.points.map((p) => xyToLatLng(p.x, p.y)),
+    {
+      color: '#38bdf8',
+      weight: !isLowRiskSelected ? 5 : 3,
+      dashArray: '7 5',
+      opacity: !isLowRiskSelected ? 0.96 : 0.65,
+    }
+  )
+    .addTo(routeLayerGroup)
+    .bindTooltip(
+      `Shortest: ${Math.round(shortest.totals.distance_m)} m · mean risk ${shortest.totals.mean_risk.toFixed(1)}`
+    );
+  shortestLine.on('click', () => selectRouteKind('shortest'));
+
+  if (isLowRiskSelected) {
+    lowRiskLine.bringToFront();
+  } else {
+    shortestLine.bringToFront();
+  }
+}
+
+function renderRouteCards() {
+  routesContainerEl.innerHTML = '';
+  const { shortest, low_risk } = currentRoutes;
+  if (!shortest || !low_risk) {
+    const empty = document.createElement('div');
+    empty.className = 'route-empty';
+    empty.textContent = 'Select at least one science stop on the left or on the map to compare routes.';
+    routesContainerEl.appendChild(empty);
+    return;
+  }
+
+  const pairs = [
+    { route: low_risk, other: shortest },
+    { route: shortest, other: low_risk },
+  ];
+
+  for (const { route, other } of pairs) {
+    const t = route.totals;
+    const evaS = totalEvaS(route);
+    const overLimit = evaS > ASSUMPTIONS.EVA_LIMIT_S;
+    const isSelected = selectedRouteKind === route.kind;
+
+    const card = document.createElement('div');
+    card.className = `route-card kind-${route.kind}${isSelected ? ' selected' : ''}`;
+    card.dataset.kind = route.kind;
+
+    const header = document.createElement('div');
+    header.className = 'route-card-header';
+
+    const title = document.createElement('div');
+    title.className = 'route-card-title';
+    const swatch = document.createElement('span');
+    swatch.className = `route-swatch swatch-${route.kind}`;
+    const titleText = document.createElement('span');
+    titleText.textContent = route.name;
+    title.append(swatch, titleText);
+
+    const pill = document.createElement('span');
+    pill.className = 'route-selected-pill';
+    pill.textContent = isSelected ? 'Selected' : 'Select';
+
+    header.append(title, pill);
+
+    const metrics = document.createElement('div');
+    metrics.className = 'route-metrics';
+
+    const rows = [
+      { label: 'Distance (one-way)', val: `${Math.round(t.distance_m)} m` },
+      { label: 'Walk out time', val: formatDuration(t.walk_s) },
+      { label: 'Stop work time', val: formatDuration(t.work_s) },
+      { label: 'Return walk time', val: formatDuration(t.return_s) },
+      { label: 'Total Marswalk (EVA)', val: formatDuration(evaS), className: 'total-eva' },
+      { label: 'Max slope', val: `${Math.round(t.max_slope_deg)}°` },
+      { label: 'Total ascent', val: `${Math.round(t.ascent_m)} m` },
+      { label: 'Mean estimated risk', val: t.mean_risk != null ? t.mean_risk.toFixed(1) : 'N/A' },
+      { label: 'No-data cells', val: String(t.nodata_cells) },
+    ];
+
+    for (const r of rows) {
+      const rowEl = document.createElement('div');
+      rowEl.className = `metric-row${r.className ? ' ' + r.className : ''}`;
+      const lbl = document.createElement('span');
+      lbl.className = 'metric-label';
+      lbl.textContent = r.label;
+      const val = document.createElement('span');
+      val.className = 'metric-val';
+      val.textContent = r.val;
+      rowEl.append(lbl, val);
+      metrics.appendChild(rowEl);
+    }
+
+    const rationale = document.createElement('div');
+    rationale.className = 'route-rationale';
+    rationale.textContent = buildRationale(route, other);
+
+    card.append(header, metrics, rationale);
+
+    if (overLimit) {
+      const warn = document.createElement('div');
+      warn.className = 'eva-limit-warning';
+      warn.textContent = `Exceeds ${formatDuration(ASSUMPTIONS.EVA_LIMIT_S)} EVA planning limit (${formatDuration(evaS)}).`;
+      card.appendChild(warn);
+    }
+
+    card.addEventListener('click', () => selectRouteKind(route.kind));
+    routesContainerEl.appendChild(card);
+  }
+}
+
 function recomputeRoutes() {
   routeLayerGroup.clearLayers();
   routeAlertEl.hidden = true;
   routeAlertEl.textContent = '';
+  currentRoutes = { shortest: null, low_risk: null };
 
   const chosen = getSelectedStops();
   if (chosen.length === 0) {
+    renderRouteCards();
     statusEl.textContent = `${grid.meta.mock ? 'DEMO TERRAIN · ' : ''}${grid.cols} × ${grid.rows} cells of ${grid.cellSize} m · Select stops to plan route`;
     return;
   }
@@ -112,6 +285,7 @@ function recomputeRoutes() {
     const msg = `No passable route to ${shortestRes.failedStop.name}`;
     routeAlertEl.textContent = msg;
     routeAlertEl.hidden = false;
+    renderRouteCards();
     statusEl.textContent = msg;
     return;
   }
@@ -121,6 +295,7 @@ function recomputeRoutes() {
     const msg = `No passable route to ${lowRiskRes.failedStop.name}`;
     routeAlertEl.textContent = msg;
     routeAlertEl.hidden = false;
+    renderRouteCards();
     statusEl.textContent = msg;
     return;
   }
@@ -140,24 +315,9 @@ function recomputeRoutes() {
     stops: chosen,
   });
 
-  // Draw Lowest estimated risk line first (thicker green) and Shortest line (dashed blue) on top
-  L.polyline(
-    lowRiskRoute.points.map((p) => xyToLatLng(p.x, p.y)),
-    { color: '#34d399', weight: 5, opacity: 0.92 }
-  )
-    .addTo(routeLayerGroup)
-    .bindTooltip(
-      `Lowest estimated risk: ${Math.round(lowRiskRoute.totals.distance_m)} m · mean risk ${lowRiskRoute.totals.mean_risk.toFixed(1)}`
-    );
-
-  L.polyline(
-    shortestRoute.points.map((p) => xyToLatLng(p.x, p.y)),
-    { color: '#38bdf8', weight: 3, dashArray: '7 5', opacity: 0.95 }
-  )
-    .addTo(routeLayerGroup)
-    .bindTooltip(
-      `Shortest: ${Math.round(shortestRoute.totals.distance_m)} m · mean risk ${shortestRoute.totals.mean_risk.toFixed(1)}`
-    );
+  currentRoutes = { shortest: shortestRoute, low_risk: lowRiskRoute };
+  drawRouteLines();
+  renderRouteCards();
 
   statusEl.textContent =
     `${grid.meta.mock ? 'DEMO TERRAIN · ' : ''}${chosen.length} stop(s) · ` +
