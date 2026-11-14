@@ -29,7 +29,7 @@ header a { color: var(--accent); text-decoration: none; }
 .tag-demo { background: #7a4a12; color: #fff; }
 .tag-sim { background: var(--text); color: var(--bg); }
 
-main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; }
+main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; }
 
 /* Status strip: the one answer the astronaut needs. Colour and words always change together.
    It runs edge to edge with square corners so it reads as a sign, not as a button to press. */
@@ -54,7 +54,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px;
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* Controls: at most three buttons, sized for gloves (64 px or more), always in the same place. */
-.controls { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.controls { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .btn {
   min-height: 64px; width: 100%; padding: 8px 16px; border: 3px solid transparent; border-radius: 14px;
   font: inherit; font-size: 24px; font-weight: 800; letter-spacing: 0.02em;
@@ -81,3 +81,39 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px;
   touch-action: manipulation; cursor: pointer;
 }
 .speed-btn[aria-pressed="true"] { background: var(--accent); color: #241404; }
+
+/* Oxygen gauge (estimated from the suit budget). Fill colour follows the status strip. */
+.oxygen { flex: none; padding: 10px 14px 8px; }
+.oxygen-head { display: flex; align-items: baseline; justify-content: space-between; }
+.oxygen h2 { margin: 0; }
+.est { font-weight: 500; }
+.tile .o2-left { font-size: 26px; }
+.battery {
+  position: relative; height: 26px; margin: 6px 8px 0 0; border: 3px solid var(--text); border-radius: 7px;
+  background: #1a1411; overflow: visible;
+}
+.battery::after { /* the battery nub */
+  content: ""; position: absolute; right: -9px; top: 50%; width: 5px; height: 12px; margin-top: -6px;
+  border-radius: 0 3px 3px 0; background: var(--text);
+}
+.battery-fill { height: 100%; border-radius: 3px; background: #2fc25b; }
+.battery-fill[data-status="soon"] { background: #ffd21f; }
+.battery-fill[data-status="now"] { background: #e5352b; }
+.battery-fill[data-status="returning"] { background: #4da3ff; }
+.battery-fill[data-status="done"] { background: var(--muted); }
+.battery-home { position: absolute; top: -7px; bottom: -7px; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px #000; }
+.battery-home[hidden] { display: none; }
+.tile .o2-note { margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Next stop check: shown only at a stop. Same thresholds as the status strip. */
+.stop-check { flex: 0 1 auto; min-height: 0; overflow: hidden; padding: 10px 14px; border: 3px solid #6b5648; }
+.stop-check[hidden] { display: none; }
+.stop-check[data-verdict="ok"] { border-color: #2fc25b; }
+.stop-check[data-verdict="tight"] { border-color: #ffd21f; }
+.stop-check[data-verdict="no"] { border-color: #e5352b; }
+.tile .check-plan { font-size: 16px; font-weight: 600; line-height: 1.3; }
+.tile .check-result { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 18px; }
+.verdict { padding: 3px 8px; border-radius: 6px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
+.stop-check[data-verdict="ok"] .verdict { background: #2fc25b; color: #04210d; }
+.stop-check[data-verdict="tight"] .verdict { background: #ffd21f; color: #2b2100; }
+.stop-check[data-verdict="no"] .verdict { background: #e5352b; color: #fff; }
