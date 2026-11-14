@@ -87,6 +87,14 @@ header a:hover {
   overflow-y: auto;
 }
 
+.center-col {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
 .panel-section h2 {
   margin: 0 0 8px 0;
   font-size: 12px;
@@ -244,7 +252,8 @@ header a:hover {
 
 .map-wrap {
   position: relative;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   width: 100%;
 }
 
@@ -306,6 +315,63 @@ header a:hover {
 .map-stop-badge.selected {
   background: #38bdf8;
   color: #091019;
+}
+
+/* Step 4: Elevation profile panel */
+.profile-panel {
+  height: 155px;
+  flex-shrink: 0;
+  background: #141a24;
+  border-top: 1px solid #263244;
+  padding: 8px 14px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-header h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #93a6be;
+}
+
+.profile-sub {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-left: 6px;
+}
+
+.profile-hover {
+  font-size: 11.5px;
+  color: #8fa2ba;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.profile-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #10161f;
+  border: 1px solid #232f40;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.profile-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* Step 3: Side-by-side route comparison cards */

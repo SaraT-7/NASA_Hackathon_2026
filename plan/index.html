@@ -48,12 +48,24 @@
       </section>
     </aside>
 
-    <main class="map-wrap">
-      <div id="map"></div>
-      <div class="map-legend">
-        <span class="legend-item"><span class="legend-line shortest-line"></span> Shortest (weight 0)</span>
-        <span class="legend-item"><span class="legend-line lowrisk-line"></span> Lowest estimated risk (weight 8)</span>
+    <main class="center-col">
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-line shortest-line"></span> Shortest (weight 0)</span>
+          <span class="legend-item"><span class="legend-line lowrisk-line"></span> Lowest estimated risk (weight 8)</span>
+        </div>
       </div>
+
+      <section class="profile-panel">
+        <div class="profile-header">
+          <h2>Elevation Profile <span id="profile-route-label" class="profile-sub"></span></h2>
+          <span id="profile-hover-info" class="profile-hover">Hover over chart to inspect point on map</span>
+        </div>
+        <div id="profile-wrap" class="profile-wrap">
+          <svg id="profile-svg" class="profile-svg" preserveAspectRatio="none"></svg>
+        </div>
+      </section>
     </main>
 
     <aside class="sidebar-right">

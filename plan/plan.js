@@ -13,6 +13,9 @@ const clearStopsBtn = document.getElementById('clear-stops-btn');
 const sequenceSummaryEl = document.getElementById('sequence-summary');
 const routeAlertEl = document.getElementById('route-alert');
 const routesContainerEl = document.getElementById('routes-container');
+const profileSvgEl = document.getElementById('profile-svg');
+const profileRouteLabelEl = document.getElementById('profile-route-label');
+const profileHoverInfoEl = document.getElementById('profile-hover-info');
 
 let grid = null;
 let habitat = null;
@@ -26,6 +29,7 @@ let selectedRouteKind = 'low_risk';
 
 let map = null;
 let routeLayerGroup = null;
+let hoverMapMarker = null;
 const stopMarkers = new Map();
 
 function getSelectedStops() {
@@ -48,6 +52,7 @@ function selectRouteKind(kind) {
   selectedRouteKind = kind;
   drawRouteLines();
   renderRouteCards();
+  renderElevationProfile();
 }
 
 function renderStopsUI() {
@@ -266,6 +271,277 @@ function renderRouteCards() {
   }
 }
 
+/**
+ * Step 4: Render SVG elevation profile for the currently selected route, with habitat & stops marked.
+ */
+function renderElevationProfile() {
+  const route = currentRoutes[selectedRouteKind];
+  profileSvgEl.innerHTML = '';
+  if (hoverMapMarker) {
+    hoverMapMarker.remove();
+    hoverMapMarker = null;
+  }
+
+  if (!route || !route.points || route.points.length < 2) {
+    profileRouteLabelEl.textContent = '';
+    profileHoverInfoEl.textContent = 'Select science stops to view elevation profile';
+    return;
+  }
+
+  const color = route.kind === 'low_risk' ? '#34d399' : '#38bdf8';
+  profileRouteLabelEl.textContent = `· ${route.name} (${Math.round(route.totals.distance_m)} m)`;
+  profileHoverInfoEl.textContent = 'Hover over chart to inspect point on map';
+
+  const W = profileSvgEl.clientWidth || 640;
+  const H = profileSvgEl.clientHeight || 115;
+  profileSvgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const padL = 52;
+  const padR = 18;
+  const padT = 18;
+  const padB = 22;
+  const plotW = Math.max(10, W - padL - padR);
+  const plotH = Math.max(10, H - padT - padB);
+
+  const pts = route.points;
+  const maxDist = Math.max(1, route.totals.distance_m);
+
+  let minElev = Infinity;
+  let maxElev = -Infinity;
+  for (const p of pts) {
+    if (p.elev != null) {
+      if (p.elev < minElev) minElev = p.elev;
+      if (p.elev > maxElev) maxElev = p.elev;
+    }
+  }
+  if (!Number.isFinite(minElev) || !Number.isFinite(maxElev)) {
+    minElev = 0;
+    maxElev = 10;
+  }
+  if (maxElev - minElev < 2) {
+    minElev -= 1;
+    maxElev += 1;
+  } else {
+    const margin = (maxElev - minElev) * 0.08;
+    minElev -= margin;
+    maxElev += margin;
+  }
+
+  const xOf = (dist) => padL + (dist / maxDist) * plotW;
+  const yOf = (elev) => padT + (1 - (elev - minElev) / (maxElev - minElev)) * plotH;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, text = '') => {
+    const node = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+    if (text) node.textContent = text;
+    return node;
+  };
+
+  // Horizontal grid lines & elevation labels
+  for (const frac of [0, 0.5, 1]) {
+    const elevVal = minElev + frac * (maxElev - minElev);
+    const y = yOf(elevVal);
+    profileSvgEl.appendChild(
+      el('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#1f2b3d', 'stroke-width': 1 })
+    );
+    profileSvgEl.appendChild(
+      el(
+        'text',
+        {
+          x: padL - 6,
+          y: y + 3.5,
+          fill: '#7c90a8',
+          'font-size': 10,
+          'font-family': 'ui-monospace, monospace',
+          'text-anchor': 'end',
+        },
+        `${elevVal.toFixed(0)} m`
+      )
+    );
+  }
+
+  // X-axis distance ticks
+  for (const frac of [0, 0.25, 0.5, 0.75, 1]) {
+    const dVal = frac * maxDist;
+    const x = xOf(dVal);
+    profileSvgEl.appendChild(
+      el(
+        'text',
+        {
+          x,
+          y: H - 5,
+          fill: '#7c90a8',
+          'font-size': 10,
+          'font-family': 'ui-monospace, monospace',
+          'text-anchor': frac === 0 ? 'start' : frac === 1 ? 'end' : 'middle',
+        },
+        `${Math.round(dVal)} m`
+      )
+    );
+  }
+
+  // Build path string for elevation line & area fill
+  const validPts = pts.filter((p) => p.elev != null);
+  if (validPts.length >= 2) {
+    const lineCoords = validPts.map((p) => `${xOf(p.dist).toFixed(1)},${yOf(p.elev).toFixed(1)}`);
+    const areaD =
+      `M ${xOf(validPts[0].dist).toFixed(1)},${(padT + plotH).toFixed(1)} ` +
+      `L ${lineCoords.join(' L ')} ` +
+      `L ${xOf(validPts[validPts.length - 1].dist).toFixed(1)},${(padT + plotH).toFixed(1)} Z`;
+
+    profileSvgEl.appendChild(
+      el('path', {
+        d: areaD,
+        fill: color,
+        'fill-opacity': 0.16,
+      })
+    );
+
+    profileSvgEl.appendChild(
+      el('polyline', {
+        points: lineCoords.join(' '),
+        fill: 'none',
+        stroke: color,
+        'stroke-width': 2.2,
+      })
+    );
+  }
+
+  // Mark Habitat at start (dist = 0)
+  if (pts[0] && pts[0].elev != null) {
+    const hx = xOf(0);
+    const hy = yOf(pts[0].elev);
+    profileSvgEl.appendChild(el('circle', { cx: hx, cy: hy, r: 4.5, fill: '#2f7ed8', stroke: '#ffffff', 'stroke-width': 1.5 }));
+    profileSvgEl.appendChild(
+      el('text', { x: hx + 4, y: padT + 10, fill: '#93c5fd', 'font-size': 10, 'font-weight': '700' }, 'H')
+    );
+  }
+
+  // Mark each science stop along the route
+  route.stops.forEach((s, idx) => {
+    const pt = pts[s.point_index];
+    if (!pt || pt.elev == null) return;
+    const sx = xOf(pt.dist);
+    const sy = yOf(pt.elev);
+
+    profileSvgEl.appendChild(
+      el('line', {
+        x1: sx,
+        y1: padT,
+        x2: sx,
+        y2: padT + plotH,
+        stroke: '#e2a66f',
+        'stroke-width': 1,
+        'stroke-dasharray': '3 3',
+      })
+    );
+    profileSvgEl.appendChild(
+      el('circle', { cx: sx, cy: sy, r: 5, fill: '#e2a66f', stroke: '#10161f', 'stroke-width': 1.5 })
+    );
+    profileSvgEl.appendChild(
+      el(
+        'text',
+        {
+          x: sx,
+          y: padT - 4,
+          fill: '#fbbf24',
+          'font-size': 10,
+          'font-weight': '700',
+          'text-anchor': idx === route.stops.length - 1 ? 'end' : 'middle',
+        },
+        `${idx + 1}. ${s.name}`
+      )
+    );
+  });
+
+  // Interactive hover cursor synchronized with map
+  const hoverLine = el('line', {
+    x1: 0,
+    y1: padT,
+    x2: 0,
+    y2: padT + plotH,
+    stroke: '#f8fafc',
+    'stroke-width': 1,
+    visibility: 'hidden',
+  });
+  const hoverDot = el('circle', {
+    cx: 0,
+    cy: 0,
+    r: 4.5,
+    fill: '#f8fafc',
+    stroke: color,
+    'stroke-width': 2,
+    visibility: 'hidden',
+  });
+  profileSvgEl.append(hoverLine, hoverDot);
+
+  const overlayRect = el('rect', {
+    x: padL,
+    y: padT,
+    width: plotW,
+    height: plotH,
+    fill: 'transparent',
+    style: 'cursor: crosshair;',
+  });
+
+  overlayRect.addEventListener('mousemove', (ev) => {
+    const rect = profileSvgEl.getBoundingClientRect();
+    const relX = ev.clientX - rect.left - padL;
+    const frac = Math.max(0, Math.min(1, relX / plotW));
+    const targetDist = frac * maxDist;
+
+    // Find nearest point by distance
+    let bestPt = pts[0];
+    let bestDiff = Infinity;
+    for (const p of pts) {
+      const diff = Math.abs(p.dist - targetDist);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPt = p;
+      }
+    }
+    if (!bestPt || bestPt.elev == null) return;
+
+    const cx = xOf(bestPt.dist);
+    const cy = yOf(bestPt.elev);
+    hoverLine.setAttribute('x1', String(cx));
+    hoverLine.setAttribute('x2', String(cx));
+    hoverLine.setAttribute('visibility', 'visible');
+    hoverDot.setAttribute('cx', String(cx));
+    hoverDot.setAttribute('cy', String(cy));
+    hoverDot.setAttribute('visibility', 'visible');
+
+    profileHoverInfoEl.textContent =
+      `Dist: ${Math.round(bestPt.dist)} m · Elev: ${bestPt.elev.toFixed(1)} m · ` +
+      `Slope: ${bestPt.slope != null ? bestPt.slope + '°' : 'N/A'} · Risk: ${bestPt.risk != null ? bestPt.risk : 'no data'}`;
+
+    if (!hoverMapMarker) {
+      hoverMapMarker = L.circleMarker(xyToLatLng(bestPt.x, bestPt.y), {
+        radius: 6,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 1,
+      }).addTo(map);
+    } else {
+      hoverMapMarker.setLatLng(xyToLatLng(bestPt.x, bestPt.y));
+    }
+  });
+
+  overlayRect.addEventListener('mouseleave', () => {
+    hoverLine.setAttribute('visibility', 'hidden');
+    hoverDot.setAttribute('visibility', 'hidden');
+    profileHoverInfoEl.textContent = 'Hover over chart to inspect point on map';
+    if (hoverMapMarker) {
+      hoverMapMarker.remove();
+      hoverMapMarker = null;
+    }
+  });
+
+  profileSvgEl.appendChild(overlayRect);
+}
+
 function recomputeRoutes() {
   routeLayerGroup.clearLayers();
   routeAlertEl.hidden = true;
@@ -275,6 +551,7 @@ function recomputeRoutes() {
   const chosen = getSelectedStops();
   if (chosen.length === 0) {
     renderRouteCards();
+    renderElevationProfile();
     statusEl.textContent = `${grid.meta.mock ? 'DEMO TERRAIN · ' : ''}${grid.cols} × ${grid.rows} cells of ${grid.cellSize} m · Select stops to plan route`;
     return;
   }
@@ -286,6 +563,7 @@ function recomputeRoutes() {
     routeAlertEl.textContent = msg;
     routeAlertEl.hidden = false;
     renderRouteCards();
+    renderElevationProfile();
     statusEl.textContent = msg;
     return;
   }
@@ -296,6 +574,7 @@ function recomputeRoutes() {
     routeAlertEl.textContent = msg;
     routeAlertEl.hidden = false;
     renderRouteCards();
+    renderElevationProfile();
     statusEl.textContent = msg;
     return;
   }
@@ -318,6 +597,7 @@ function recomputeRoutes() {
   currentRoutes = { shortest: shortestRoute, low_risk: lowRiskRoute };
   drawRouteLines();
   renderRouteCards();
+  renderElevationProfile();
 
   statusEl.textContent =
     `${grid.meta.mock ? 'DEMO TERRAIN · ' : ''}${chosen.length} stop(s) · ` +
@@ -381,6 +661,10 @@ async function main() {
     selectedStopIds = [];
     renderStopsUI();
     recomputeRoutes();
+  });
+
+  window.addEventListener('resize', () => {
+    renderElevationProfile();
   });
 
   // Pre-select first two stops on load so two multi-stop routes are immediately visible
