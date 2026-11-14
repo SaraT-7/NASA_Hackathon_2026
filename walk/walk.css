@@ -41,7 +41,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 }
 .status[data-status="go"] { background: #2fc25b; color: #04210d; }
 .status[data-status="soon"] { background: #ffd21f; color: #2b2100; }
-.status[data-status="now"], .status[data-status="error"] { background: #e5352b; color: #fff; }
+.status[data-status="now"], .status[data-status="error"] { background: #c62828; color: #fff; }
 .status[data-status="returning"] { background: #4da3ff; color: #021b36; }
 .status[data-status="done"] { background: var(--text); color: var(--bg); }
 
@@ -71,9 +71,44 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 .return-info h2 { font-size: 22px; font-weight: 800; color: var(--text); }
 .return-info p { font-size: 16px; font-weight: 500; color: var(--muted); }
 
-/* Demo control: simulation speed. Deliberately small and out of the way; not for the astronaut. */
-.stage { flex: none; display: flex; justify-content: flex-end; }
-.speed { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 9px; background: var(--panel); }
+/* Map area: the small map while walking; at a stop the stop check covers it. Takes the space that is left. */
+.stage { position: relative; flex: 1 1 auto; min-height: 140px; border-radius: 12px; overflow: hidden; background: #1a1411; }
+.map-missing::after { content: "Map not available"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+/* The map layer is larger than the area and turned and tilted in 3D, so the walking direction points up. */
+.map-layer { position: absolute; background: #1a1411; transform-origin: 50% 50%; will-change: transform; }
+.map-pin { display: flex; align-items: center; justify-content: center; }
+.map-pin span {
+  display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; box-sizing: border-box;
+  border: 2px solid #fff; border-radius: 50%; font: 800 13px system-ui, sans-serif;
+  background: var(--accent); color: #241404; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+.map-pin.is-next span { background: #fff; color: #120e0c; box-shadow: 0 0 0 3px var(--accent); }
+.map-habitat span { border-radius: 6px; background: var(--text); color: var(--bg); }
+/* The astronaut: an arrow that always points up, the walking direction. */
+.map-me {
+  position: absolute; z-index: 900; width: 0; height: 0; margin: -16px 0 0 -12px; pointer-events: none;
+  border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 28px solid #4da3ff;
+  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+/* Where north is, since the map turns: a compass-style needle (red half = north) with the N at its tip. */
+.map-north {
+  position: absolute; z-index: 900; left: 8px; top: 8px; width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(38, 29, 24, 0.9); border: 2px solid var(--muted); pointer-events: none;
+}
+.map-needle { position: absolute; inset: 0; display: block; }
+.map-needle::before, .map-needle::after {
+  content: ""; position: absolute; left: 50%; margin-left: -4px; border-left: 4px solid transparent; border-right: 4px solid transparent;
+}
+.map-needle::before { top: 11px; border-bottom: 8px solid #ff6b5e; }
+.map-needle::after { top: 19px; border-top: 8px solid var(--muted); }
+.map-needle b {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%); line-height: 11px;
+  font: 800 10px system-ui, sans-serif; color: #ff6b5e;
+}
+
+/* Demo control: simulation speed. Small, in the corner of the map; not for the astronaut. */
+.speed { position: absolute; top: 6px; right: 6px; z-index: 1000; display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 9px; background: rgba(38, 29, 24, 0.9); }
+.speed[hidden] { display: none; }
 .speed-label { padding: 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); }
 .speed-btn {
   min-width: 46px; height: 32px; padding: 0 8px; border: 0; border-radius: 7px;
@@ -98,7 +133,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 }
 .battery-fill { height: 100%; border-radius: 3px; background: #2fc25b; }
 .battery-fill[data-status="soon"] { background: #ffd21f; }
-.battery-fill[data-status="now"] { background: #e5352b; }
+.battery-fill[data-status="now"] { background: #c62828; }
 .battery-fill[data-status="returning"] { background: #4da3ff; }
 .battery-fill[data-status="done"] { background: var(--muted); }
 .battery-home { position: absolute; top: -7px; bottom: -7px; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px #000; }
@@ -106,14 +141,14 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 .tile .o2-note { margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Next stop check: shown only at a stop. Same thresholds as the status strip. */
-.stop-check { flex: 0 1 auto; min-height: 0; overflow: hidden; padding: 10px 14px; border: 3px solid #6b5648; }
+.stop-check { position: absolute; inset: 0; z-index: 1000; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: 10px 14px; border: 3px solid #6b5648; }
 .stop-check[hidden] { display: none; }
 .stop-check[data-verdict="ok"] { border-color: #2fc25b; }
 .stop-check[data-verdict="tight"] { border-color: #ffd21f; }
-.stop-check[data-verdict="no"] { border-color: #e5352b; }
+.stop-check[data-verdict="no"] { border-color: #c62828; }
 .tile .check-plan { font-size: 16px; font-weight: 600; line-height: 1.3; }
 .tile .check-result { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 18px; }
 .verdict { padding: 3px 8px; border-radius: 6px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
 .stop-check[data-verdict="ok"] .verdict { background: #2fc25b; color: #04210d; }
 .stop-check[data-verdict="tight"] .verdict { background: #ffd21f; color: #2b2100; }
-.stop-check[data-verdict="no"] .verdict { background: #e5352b; color: #fff; }
+.stop-check[data-verdict="no"] .verdict { background: #c62828; color: #fff; }

@@ -6,6 +6,7 @@
   <link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MarsWalk · Wrist display</title>
+  <link rel="stylesheet" href="../shared/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="walk.css">
 </head>
 <body>
@@ -17,10 +18,15 @@
     </span>
   </header>
   <main>
-    <div class="stage">
+    <div id="stage" class="stage" aria-label="Map: route, stops and simulated position, turned to the walking direction">
       <div id="speed" class="speed" role="group" aria-label="Demo control: simulation speed">
         <span class="speed-label">demo control</span>
       </div>
+      <section id="stop-check" class="tile stop-check" hidden>
+        <h2>Next stop check</h2>
+        <p id="check-plan" class="check-plan"></p>
+        <p class="check-result"><span id="check-verdict" class="verdict"></span><span id="check-left"></span></p>
+      </section>
     </div>
     <div id="status" class="status" role="status" data-status="loading">…</div>
     <section class="tile tile-next">
@@ -37,11 +43,6 @@
       <div class="battery"><div id="o2-fill" class="battery-fill"></div><div id="o2-home" class="battery-home"></div></div>
       <p id="o2-note" class="o2-note"></p>
     </section>
-    <section id="stop-check" class="tile stop-check" hidden>
-      <h2>Next stop check</h2>
-      <p id="check-plan" class="check-plan"></p>
-      <p class="check-result"><span id="check-verdict" class="verdict"></span><span id="check-left"></span></p>
-    </section>
     <div class="controls">
       <button id="btn-run" class="btn btn-run" type="button">Start</button>
       <button id="btn-done" class="btn btn-done" type="button" disabled>Done here</button>
@@ -52,6 +53,7 @@
       </section>
     </div>
   </main>
+  <script src="../shared/vendor/leaflet/leaflet.js"></script>
   <script type="module" src="walk.js"></script>
 </body>
 </html>

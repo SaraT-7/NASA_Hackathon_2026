@@ -6,6 +6,7 @@ import { createWalk, PHASE } from './state.js';
 import { readout } from './status.js';
 import { nextStopCheck } from './check.js';
 import { oxygenGauge, budgetPct } from './oxygen.js';
+import { loadGridMeta, createWalkMap } from './map.js';
 
 /** Longest step of real time one frame may add, so a stalled tab cannot jump the walk forward. */
 const MAX_FRAME_S = 0.25;
@@ -20,6 +21,7 @@ const el = (id) => document.getElementById(id);
 
 let route = null;
 let walk = null;
+let walkMap = null; // stays null if the map cannot be drawn; the walk still works without it
 let speed = DEMO_SPEEDS[0];
 let lastFrameMs = null;
 
@@ -108,6 +110,8 @@ function drawCheck(s) {
 
 function draw() {
   const s = walk.snapshot();
+  if (walkMap) walkMap.update(s);
+  el('speed').hidden = s.phase === PHASE.AT_STOP; // the clock waits at a stop, and the stop check covers the map
   const statusKey = drawIndicators(s);
   drawOxygen(s, statusKey);
   drawCheck(s);
@@ -172,6 +176,14 @@ async function main() {
   el('badge').textContent = demo ? 'DEMO ROUTE' : route.mock ? 'DEMO TERRAIN' : '';
 
   walk = createWalk(route);
+  try {
+    const grid = await loadGridMeta('../app_data/');
+    walkMap = createWalkMap(el('stage'), grid, route);
+    window.addEventListener('resize', () => walkMap.resize());
+  } catch (err) {
+    el('stage').classList.add('map-missing');
+    console.warn('Map not available:', err.message);
+  }
   bindControls();
   buildSpeedControl();
   requestAnimationFrame(frame);
