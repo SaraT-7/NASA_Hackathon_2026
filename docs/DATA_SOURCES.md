@@ -21,6 +21,7 @@ Her öğe üç türden biridir:
 | 5 | Katman: Curiosity'nin sürüş izi | Ölçüm + varsayım (şerit genişliği, ağırlık) | NASA/JPL MSL traverse (MMGIS) | `06_layers.py` → `layer_curiosity` |
 | 6 | Katman: İletişim gölgesi | Türetilmiş + varsayım (habitat yeri, anten boyları, ağırlık) | 1'den görüş hattı hesabı | `06_layers.py` → `layer_comm` |
 | 7 | Katman: Boxwork sırtları | Türetilmiş + varsayım (ağırlık, eşikler) | HiRISE görüntüsünden kural tabanlı tespit | `06_layers.py` → `layer_boxwork` |
+| 7b | Katman: Yüzey pürüzlülüğü | Türetilmiş + varsayım (eşikler, ağırlık) | 1'den, 5 m düzlem sapması | `06_layers.py` → `layer_rough` |
 | 8 | Uydu görüntüsü | Ölçüm | USGS/JPL MSL Gale HiRISE renkli mozaik | `pipeline/02_cut_ortho.py` |
 | 9 | Bilim durakları | Ölçüm (rover konumları) | NASA/JPL MSL waypoints (MMGIS) | `03_export_app_data.py` |
 | 10 | Habitat | Varsayım | Alanın en düz yakın noktası | `03_export_app_data.py` |
@@ -100,6 +101,16 @@ risk = clamp( round( eğim / 20 × 100  +  Σ ağırlık × katman / 100 ), 0, 1
 - **Etki:** Deneme rotasının aştığı boxwork sırtı 13'ten 9'a indi. Habitat → 1 → 2 rotasında "Lowest estimated risk" yolun %3'ünde sırt bandında, "Shortest" %17'sinde.
 - **EN:** "Boxwork ridges are mapped from HiRISE images with a rule-based line detector: ridges that cross in many directions are boxwork, parallel ones are rock layers."
 
+### 7b · Katman: Yüzey pürüzlülüğü (türetilmiş + varsayım)
+
+- **Ayrı bir NASA pürüzlülük verisi yok.** 1'deki yükseklik modelinden biz hesapladık.
+- **Yöntem:** Her 1 m pikselde 5 × 5 m'lik pencereye bir düzlem oturtulur; arazinin bu düzlemden sapmasının RMS'i (metre) pürüzlülüktür. Düzgün bir yamaç 0 alır; yalnız basamak, çıkıntı ve tümsek sayılır. 2 m hücre en pürüzlü pikselini alır.
+- **Ölçek (varsayım):** 10 cm ve altı 0 (yükseklik modelinin kendi gürültüsü bu seviyede), 30 cm ve üstü 100. Ağırlık **+10**.
+- **Dürüst not:** Eğimle korelasyonu 0,62 (dik yerler çoğu zaman pürüzlü de); ağırlığı bu yüzden düşük. Curiosity'nin izi biraz daha düzgün zeminden geçiyor (medyan 8,5 cm, geçilebilir alanın tamamında 9,1 cm), ama fark küçük: kanıt diye sunmuyoruz.
+- **Göremedikleri:** Birkaç metreden küçük şekiller (tek kayalar, küçük basamaklar) yükseklik modelinde yumuşamış.
+- **Etki:** Habitat → 1 → 2: "Lowest estimated risk" rotası pürüzlü hücrelerin %31'inde, "Shortest" %72'sinde. Deneme rotasında etkisi küçük (ortalama puan 6,8 → 6,2); bu rota zaten düzgün zeminden gidiyordu.
+- **EN:** "Roughness is the departure from a flat plane over 5 m in the elevation model: it catches steps and ledges that slope alone misses."
+
 ### 8 · Uydu görüntüsü (ölçüm)
 
 - **Ürün:** MSL Gale Merged Orthophoto Mosaic, HiRISE renkli sürüm (USGS / JPL; Calef ve Parker). https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm
@@ -161,4 +172,4 @@ risk = clamp( round( eğim / 20 × 100  +  Σ ağırlık × katman / 100 ), 0, 1
 - **"Yenilik ne?"** Bu veriler ayrı ayrı vardı; biz onları astronotun tek bir kararında birleştirdik: "Buradan yürüyebilir miyim, yardım çağırabilir miyim ve zamanında dönebilir miyim?" Her katman açılıp kapatılabiliyor, rotanın neden değiştiği görülüyor.
 - **"Ağırlıkları nereden buldunuz?"** Bizim seçimimiz; ölçüm değil. Bu yüzden arayüzde "assumption" yazıyor ve her katman kapatılabiliyor. Gerçek görevde bunlar ekip ve astronotla birlikte ayarlanır.
 - **"Mars için giysi şartnamesi var mı?"** Yok; NASA'nın Artemis (Ay) gereksinimlerini kullandık ve bunu açıkça söylüyoruz.
-- **"Model neyi göremiyor?"** Tek tek kayalar, gevşek kum, 1–2 m'lik sırtların yüksekliği, aktarıcı uydular. Her katmanın "Cannot show" satırında yazılı.
+- **"Model neyi göremiyor?"** Tek tek kayalar (1 m altı), gevşek kum, 1–2 m'lik sırtların yüksekliği, aktarıcı uydular. Her katmanın "Cannot show" satırında yazılı.
