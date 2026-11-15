@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- index.html — FROZEN shared file: the landing page. Do not edit without team agreement (docs/CONTRACT.md). -->
+<!-- index.html — FROZEN shared file: the landing page. Do not edit without team agreement (docs/CONTRACT.md).
+     Same instrument-panel look as plan/ and walk/: one surface, thin rules, small capital labels, fixed-width digits. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -7,26 +8,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MarsWalk</title>
   <style>
-    body { margin: 0; font-family: system-ui, sans-serif; background: #1b1512; color: #f3ebe4; }
-    main { max-width: 640px; margin: 0 auto; padding: 48px 20px; }
-    h1 { margin: 0 0 8px; font-size: 32px; }
-    p { margin: 0 0 28px; line-height: 1.5; color: #d2c3b7; }
-    a.card { display: block; padding: 20px 22px; margin-bottom: 14px; border: 1px solid #6b5648; border-radius: 12px;
-             color: inherit; text-decoration: none; background: #261d18; }
-    a.card:hover, a.card:focus { border-color: #e2a66f; }
-    a.card strong { display: block; font-size: 20px; margin-bottom: 4px; }
-    a.card span { color: #d2c3b7; }
-    #mock { display: none; padding: 10px 14px; margin-bottom: 20px; border-radius: 8px; background: #7a4a12; }
+    :root {
+      --bg: #0c0e0f; --surface: #15181a; --line: #2c3236; --line-strong: #4a5257;
+      --text: #eef1f2; --muted: #a4adb2; --faint: #7d868b; --accent: #f0b443;
+      --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      --digits: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Roboto Mono", monospace;
+      --edge: 24px;      /* one left and right edge for everything on the page */
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body { background: var(--bg); color: var(--text); font: 14px/1.45 var(--font); font-variant-numeric: tabular-nums; }
+    h1, h2, p, dl, dd { margin: 0; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+    .topbar { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+              padding: 0 var(--edge); border-bottom: 1px solid var(--line); }
+    .topbar-status { font: 12px var(--digits); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge { padding: 2px 6px; border: 1px solid var(--accent); border-radius: 2px; color: var(--accent);
+             font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+
+    main { max-width: 1120px; margin: 0 auto; padding: 0 var(--edge) 40px; }
+    .intro { padding: 56px 0 36px; }
+    .intro h1 { font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; }
+    .intro p { max-width: 560px; margin-top: 12px; font-size: 16px; color: var(--muted); }
+    #mock { display: none; margin-top: 16px; }
+
+    /* Screens: three large entry tiles. Each has its own colour bar, taken from that screen
+       (planner route blue, walk "GO" green, sand yellow), so they are told apart at a glance. */
+    .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+    a.tile { --c: var(--accent); position: relative; display: flex; flex-direction: column; min-height: 300px;
+             padding: 24px 24px 20px; border: 1px solid var(--line-strong); border-top: 6px solid var(--c); border-radius: 6px;
+             background: var(--surface); color: inherit; text-decoration: none; transition: transform .12s, border-color .12s; }
+    a.tile.plan { --c: #6cb6ff; }
+    a.tile.walk { --c: #2fc25b; }
+    a.tile.camera { --c: #ffd200; }
+    a.tile:hover, a.tile:focus-visible { border-color: var(--c); transform: translateY(-3px); }
+    .num { font: 600 13px var(--digits); color: var(--c); }
+    .name { margin-top: 14px; font-size: 32px; font-weight: 700; line-height: 1.1; }
+    .desc { margin-top: 10px; font-size: 15px; color: var(--muted); }
+    .tile .badge { align-self: flex-start; margin-top: 12px; }
+    .tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto;
+                 padding-top: 16px; border-top: 1px solid var(--line); }
+    .where { font: 12px var(--digits); color: var(--faint); }
+    .open { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 6px;
+            background: var(--c); color: #0c0e0f; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    @media (max-width: 860px) {
+      :root { --edge: 16px; }
+      .intro { padding-top: 32px; padding-bottom: 24px; }
+      .intro h1 { font-size: 34px; }
+      .tiles { grid-template-columns: 1fr; gap: 14px; }
+      a.tile { min-height: 0; }
+      .tile-foot { margin-top: 20px; }
+    }
   </style>
 </head>
 <body>
+  <header class="topbar">
+    <span class="label" style="color: var(--text)">MarsWalk</span>
+    <span id="status" class="topbar-status">NASA Space Apps 2026 · Interplanetary Survival Guide: Martian Map</span>
+  </header>
   <main>
-    <h1>MarsWalk</h1>
-    <p>A Marswalk planner and offline walk guide for the boxwork ridges of Mount Sharp, Gale Crater.</p>
-    <div id="mock">Demo terrain is loaded. This is not Mars data yet.</div>
-    <a class="card" href="plan/"><strong>Plan</strong><span>In the habitat: map layers, science stops, routes.</span></a>
-    <a class="card" href="walk/"><strong>Walk</strong><span>On the surface: next stop, distance left, latest turn-back time.</span></a>
-    <a class="card" href="camera/"><strong>Helmet camera <small style="font-size:12px;color:#e2a66f">experimental</small></strong><span>A camera on the ground finds the loose sand that orbital maps cannot see. The model runs in your browser.</span></a>
+    <section class="intro">
+      <h1>MarsWalk</h1>
+      <p>A Marswalk planner and offline walk guide for the boxwork ridges of Mount Sharp, Gale Crater.</p>
+      <div id="mock"><span class="badge">Demo terrain · not Mars data</span></div>
+    </section>
+
+    <nav class="tiles" aria-label="Screens">
+      <a class="tile plan" href="plan/">
+        <span class="num">01</span>
+        <span class="name">Plan</span>
+        <span class="desc">In the habitat: map layers, science stops, two routes to compare.</span>
+        <span class="tile-foot"><span class="where">laptop · 1280 × 720</span><span class="open">Open <span aria-hidden="true">→</span></span></span>
+      </a>
+      <a class="tile walk" href="walk/">
+        <span class="num">02</span>
+        <span class="name">Walk</span>
+        <span class="desc">On the surface: next stop, distance left, latest turn-back time.</span>
+        <span class="tile-foot"><span class="where">wrist display · offline</span><span class="open">Open <span aria-hidden="true">→</span></span></span>
+      </a>
+      <a class="tile camera" href="camera/">
+        <span class="num">03</span>
+        <span class="name">Helmet camera</span>
+        <span class="desc">A camera on the ground finds the loose sand that orbital maps cannot see.</span>
+        <span class="badge">Experimental</span>
+        <span class="tile-foot"><span class="where">runs in the browser</span><span class="open">Open <span aria-hidden="true">→</span></span></span>
+      </a>
+    </nav>
   </main>
   <script type="module">
     const meta = await (await fetch('app_data/grid.json')).json();
