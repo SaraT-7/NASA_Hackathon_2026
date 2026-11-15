@@ -12,6 +12,9 @@ Cells at or above the slope limit stay impassable whatever the layers say; layer
 
 Layers so far:
   curiosity  Ground the Curiosity rover drove on (MSL traverse, MMGIS). Proven firm ground: lowers risk.
+  comm       No line of sight to the habitat's antenna (from the elevation model). Radio shadow: raises risk.
+  boxwork    Boxwork ridges found in the HiRISE image (rule based). Ridge crossings: raises risk.
+  sky        Radiation shelter: share of the sky blocked by terrain (elevation model, RAD calibration). Map only.
 """
 import importlib
 import json
@@ -21,6 +24,7 @@ import urllib.request
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage as ndi
 from scipy.ndimage import distance_transform_edt
 
 import config as c
@@ -72,7 +76,178 @@ def layer_curiosity():
     return score.astype(np.uint8), meta
 
 
-LAYERS = [layer_curiosity]
+def layer_comm():
+    """100 where a suit radio has no line of sight to the habitat's antenna, 0 where it has.
+
+    Radial sweep over the 2 m elevation grid: along each ray from the antenna a cell is visible when the line to it
+    clears every cell in between. Mars' curvature lowers distant ground by d^2 / 2R (about 0.6 m at 2 km).
+    """
+    grid = json.loads((c.APP / "grid.json").read_text(encoding="utf-8"))
+    rows, cols, f = grid["rows"], grid["cols"], grid["cell_size_m"]
+    elev = np.fromfile(c.APP / grid["files"]["elevation"], dtype="<f4").reshape(rows, cols).astype(np.float64)
+    hab = json.loads((c.APP / grid["files"]["stops"]).read_text(encoding="utf-8"))["habitat"]
+    r0, c0 = (grid["height_m"] - hab["y"]) / f, hab["x"] / f  # fractional row/col of the habitat
+    z0 = elev[int(r0), int(c0)] + c.HABITAT_ANTENNA_M
+
+    max_r = max(math.hypot(r - r0, cc - c0) for r in (0, rows) for cc in (0, cols))
+    n_rays = int(2 * math.pi * max_r * 1.5)  # dense enough that every cell is crossed by a ray
+    dist = np.arange(1.0, max_r, 0.5)  # cells along each ray
+    d_m = dist * f
+    drop = d_m ** 2 / (2 * c.MARS_RADIUS_M)
+    hits = np.zeros(rows * cols)  # ray samples falling in each cell
+    seen_hits = np.zeros(rows * cols)  # ... of which see the antenna
+    for ang in np.array_split(np.linspace(0, 2 * np.pi, n_rays, endpoint=False), 32):  # chunks keep memory small
+        rr = r0 - np.outer(np.sin(ang), dist)  # rows grow southwards
+        cc = c0 + np.outer(np.cos(ang), dist)
+        inside = (rr >= 0) & (rr < rows) & (cc >= 0) & (cc < cols)
+        ri, ci = np.clip(rr.astype(int), 0, rows - 1), np.clip(cc.astype(int), 0, cols - 1)
+        ground = elev[ri, ci] - drop
+        ground[~inside] = -np.inf
+        horizon = np.maximum.accumulate((ground - z0) / d_m, axis=1)  # steepest terrain angle so far along the ray
+        before = np.concatenate([np.full((len(ang), 1), -np.inf), horizon[:, :-1]], axis=1)
+        seen = (ground + c.SUIT_ANTENNA_M - z0) / d_m >= before
+        idx = ri * cols + ci
+        hits += np.bincount(idx[inside], minlength=rows * cols)
+        seen_hits += np.bincount(idx[inside & seen], minlength=rows * cols)
+    visible = seen_hits >= 0.5 * np.maximum(hits, 1)  # cautious: most rays through the cell must see the antenna
+    visible[int(r0) * cols + int(c0)] = True
+    score = np.where(visible.reshape(rows, cols), 0, 100).astype(np.uint8)
+    meta = {
+        "id": "comm",
+        "label": "No radio line of sight to the habitat",
+        "effect": "raises risk",
+        "description": (f"Cells where terrain blocks the straight line between a suit radio ({c.SUIT_ANTENNA_M} m above "
+                        f"ground) and the habitat antenna ({c.HABITAT_ANTENNA_M} m mast, assumed). Out of sight, the "
+                        "astronaut cannot call the habitat directly."),
+        "source": "Line of sight computed from the MSL Gale merged DEM (USGS Astrogeology), " + c.DEM_PAGE,
+        "cannot_see": "No relay orbiters, rovers or radio bending around ridges; the 2 m elevation grid smooths "
+                      "narrow crests, so a few shadows may be missed.",
+        "colour": (140, 60, 255, 75),  # light: the shadow covers most of the area, the ground must stay visible
+        "habitat_antenna_m": c.HABITAT_ANTENNA_M,
+        "suit_antenna_m": c.SUIT_ANTENNA_M,
+    }
+    return score, meta
+
+
+def layer_boxwork():
+    """100 on boxwork ridges, 0 elsewhere. Rule based, from the 0.5 m HiRISE image (the 1 m elevation model is too
+    smooth to resolve 1-2 m high ridges).
+
+    1. Ridge lines: Sato line filter on the brightness, normalised for local contrast; thinned to 1 px centre lines.
+    2. Boxwork vs layer edges: boxwork ridges cross in many directions and close into cells, while the edges of rock
+       layers run parallel. Within ~40 m windows we measure ridge density and how aligned the ridge directions are
+       (mean resultant length of the doubled angles, 0 = all directions, 1 = parallel). Dense and multi-directional
+       = boxwork zone.
+    3. The layer is the ridge band (about 3 m wide) inside boxwork zones.
+    """
+    from skimage.feature import hessian_matrix
+    from skimage.filters import sato
+    from skimage.morphology import remove_small_objects, skeletonize
+
+    rgb = np.load(c.WORK / "ortho_rgb_050cm.npy").astype(np.float64)
+    gray = export.block(rgb.mean(axis=0), 2, np.mean)  # 0.5 m -> 1 m
+    hp = gray - ndi.gaussian_filter(gray, 20)
+    g = hp / (ndi.gaussian_filter(np.abs(hp), 20) + 1)  # local contrast, so dusty and dark ground compare
+    ridge = sato(g, sigmas=[1.5, 2.5, 3.5], black_ridges=False)
+    hrr, hrc, hcc = hessian_matrix(g, sigma=2.5, order="rc", use_gaussian_derivatives=False)
+    theta = 0.5 * np.arctan2(2 * hrc, hcc - hrr)  # line direction (any fixed offset cancels below)
+
+    lines = remove_small_objects(ridge > c.BOXWORK_RIDGE_THRESHOLD, min_size=40)
+    skel = remove_small_objects(skeletonize(lines), min_size=10, connectivity=2)
+    win = c.BOXWORK_WINDOW_SIGMA_M
+    smooth = lambda a: ndi.gaussian_filter(a.astype(np.float64), win)
+    density = smooth(skel)
+    align = np.hypot(smooth(np.cos(2 * theta) * skel), smooth(np.sin(2 * theta) * skel)) / np.maximum(density, 1e-9)
+    lo, hi = np.percentile(density, [50, 95])
+    ramp = lambda a, a0, a1: np.clip((a - a0) / (a1 - a0), 0, 1)
+    zone_score = ndi.gaussian_filter(ramp(density, lo, hi) * ramp(1 - align, 0.5, 0.85), 5)
+    zone = zone_score > c.BOXWORK_ZONE_THRESHOLD
+    band = ndi.binary_dilation(skel) & zone  # ~3 m wide ridge band, boxwork only
+
+    f = c.CELL_M
+    score = (export.block(band.astype(np.uint8), f, np.max) * 100).astype(np.uint8)
+    zone2 = export.block(zone.astype(np.uint8), f, np.max).astype(bool)
+    rgba = np.zeros(score.shape + (4,), dtype=np.uint8)
+    rgba[zone2] = (255, 200, 60, 55)  # boxwork zone: pale tint
+    rgba[score > 0] = (255, 110, 0, 225)  # ridges
+    meta = {
+        "id": "boxwork",
+        "label": "Boxwork ridges",
+        "effect": "raises risk",
+        "description": ("Ridge lines found in the orbital image where they cross in many directions, the pattern of "
+                        "boxwork. Each crossing means stepping over a ridge 1-2 m high. Ridges are also the science "
+                        "target of this area."),
+        "source": "Rule-based ridge detection on the HiRISE colour mosaic (USGS / JPL), " + c.ORTHO_PAGE,
+        "cannot_see": "Ridge height is not measured, only the line; some layer edges may still be counted and "
+                      "faint ridges under dust are missed. Not checked against rover images ridge by ridge.",
+        "rgba": rgba,
+        "zone_share": round(float(zone2.mean()), 4),
+        "ridge_km": round(float(skel[zone].sum()) / 1000, 1),
+    }
+    return score, meta
+
+
+def layer_sky():
+    """Radiation shelter: share of the sky that the terrain blocks, where it is at least SKY_SHELTER_MIN.
+
+    For every cell we find the horizon in SKY_AZIMUTHS directions, out to SKY_MAX_DIST_M, seen from SKY_OBSERVER_M
+    above the ground, and add up the solid angle of the upper hemisphere below it (mean of sin(horizon elevation)).
+    Calibration: Curiosity's RAD measured 4 % less dose next to a butte that blocked 19 % of the sky (Ehresmann et al.
+    2021, JGR Planets, doi:10.1029/2021JE006851), so the estimated dose rate is
+    last measured dose x (1 - 0.04 / 0.19 x blocked share). Score = blocked share in percent, 0 below the threshold.
+    Weight 0: shown on the map as a shelter map for solar storms, not used in the route cost (see LAYER_WEIGHTS).
+    """
+    grid = json.loads((c.APP / "grid.json").read_text(encoding="utf-8"))
+    rows, cols, f = grid["rows"], grid["cols"], grid["cell_size_m"]
+    z = np.fromfile(c.APP / grid["files"]["elevation"], dtype="<f4").reshape(rows, cols).astype(np.float64)
+    reach = int(c.SKY_MAX_DIST_M / f)
+    steps = np.unique(np.concatenate([np.arange(1, 20), np.round(np.geomspace(20, reach, 60))]).astype(int))
+    pad = np.full((rows + 2 * reach, cols + 2 * reach), -np.inf)  # outside the area: unknown, counted as open sky
+    pad[reach:reach + rows, reach:reach + cols] = z
+    blocked = np.zeros((rows, cols))
+    for k in range(c.SKY_AZIMUTHS):
+        az = 2 * np.pi * k / c.SKY_AZIMUTHS
+        dr, dc = -np.cos(az), np.sin(az)  # azimuth from north, rows grow southwards
+        horizon = np.zeros((rows, cols))  # tangent of the horizon elevation, at least 0
+        for d in steps:
+            r0, c0 = int(round(reach + dr * d)), int(round(reach + dc * d))
+            np.maximum(horizon, (pad[r0:r0 + rows, c0:c0 + cols] - z - c.SKY_OBSERVER_M) / (d * f), out=horizon)
+        blocked += np.sin(np.arctan(horizon))
+    blocked /= c.SKY_AZIMUTHS
+    score = np.where(blocked >= c.SKY_SHELTER_MIN, np.floor(blocked * 100 + 0.5), 0).astype(np.uint8)
+
+    cond = json.loads((c.APP / grid["files"]["conditions"]).read_text(encoding="utf-8"))
+    dose0 = next(i["value"] for i in cond["items"] if i["id"] == "radiation")
+    drop_per_blocked = c.RAD_BUTTE_DOSE_DROP / c.RAD_BUTTE_SKY_BLOCKED
+    dose = dose0 * (1 - drop_per_blocked * blocked)
+
+    v = np.clip(blocked / 0.35, 0, 1)
+    rgba = np.zeros((rows, cols, 4), dtype=np.uint8)
+    rgba[..., :3] = (40, 200, 255)
+    rgba[..., 3] = np.where(score > 0, 60 + 140 * v, 0).astype(np.uint8)
+    meta = {
+        "id": "sky",
+        "label": "Radiation shelter (terrain blocks the sky)",
+        "effect": "map only, not in the route cost",
+        "description": (f"Share of the sky hidden by the terrain, shown where it is {int(c.SKY_SHELTER_MIN * 100)} % or "
+                        "more. Curiosity's RAD measured 4 % less radiation dose next to a butte that blocked 19 % of the "
+                        f"sky; scaled the same way, the last measured {dose0} mGy/day falls to about "
+                        f"{dose.min():.3f} mGy/day in the most sheltered spot here. Where to wait out a solar storm."),
+        "source": ("Sky view computed from the MSL Gale merged DEM (USGS Astrogeology); dose scaling from MSL RAD "
+                   "measurements at Murray Buttes, Ehresmann et al. 2021, JGR Planets, "
+                   "https://doi.org/10.1029/2021JE006851"),
+        "cannot_see": (f"Terrain more than {c.SKY_MAX_DIST_M} m away or outside the area (such as upper Mount Sharp) "
+                       "is counted as open sky, so shelter is underestimated. The dose scaling comes from a single "
+                       "measured site; solar storm particles are shielded differently from cosmic rays."),
+        "rgba": rgba,
+        "dose_open_mgy_day": dose0,
+        "dose_min_mgy_day": round(float(dose.min()), 4),
+        "max_sky_blocked": round(float(blocked.max()), 3),
+    }
+    return score, meta
+
+
+LAYERS = [layer_curiosity, layer_comm, layer_boxwork, layer_sky]
 
 
 # Combination -----------------------------------------------------------------------------------------
@@ -99,9 +274,12 @@ def main():
         lid, weight = meta["id"], c.LAYER_WEIGHTS[meta["id"]]
         total += weight * score.astype(np.float64) / 100.0
         score.tofile(c.APP / "layers" / f"{lid}.bin")
-        rgba = np.zeros((rows, cols, 4), dtype=np.uint8)
-        rgba[score > 0] = meta.pop("colour")
-        rgba[..., 3] = (rgba[..., 3].astype(np.float64) * score / 100).astype(np.uint8)
+        if "rgba" in meta:  # a layer may draw its own map image
+            rgba = meta.pop("rgba")
+        else:
+            rgba = np.zeros((rows, cols, 4), dtype=np.uint8)
+            rgba[score > 0] = meta.pop("colour")
+            rgba[..., 3] = (rgba[..., 3].astype(np.float64) * score / 100).astype(np.uint8)
         Image.fromarray(rgba).save(c.APP / "layers" / f"{lid}.png", optimize=True)
         extra = {k: meta.pop(k) for k in list(meta) if k not in
                  ("id", "label", "effect", "description", "source", "cannot_see")}

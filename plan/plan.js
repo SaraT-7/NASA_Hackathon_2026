@@ -1,5 +1,17 @@
 // plan/plan.js — planning screen (work stream B).
-import { loadGrid, loadJson, fileUrl, mapBounds, xyToLatLng, loadLayers, combineRisk } from '../shared/data.js';
+import {
+  loadGrid,
+  loadJson,
+  fileUrl,
+  mapBounds,
+  xyToLatLng,
+  latLngToXy,
+  xyToCell,
+  cellIndex,
+  RISK_IMPASSABLE,
+  loadLayers,
+  combineRisk,
+} from '../shared/data.js';
 import { buildRoute, saveRoute, totalEvaS } from '../shared/route.js';
 import { ASSUMPTIONS, ASSUMPTION_NOTES, formatDuration } from '../shared/walk-model.js';
 import { findMultiStopPath } from './astar.js';
@@ -10,6 +22,9 @@ const demoBadgeEl = document.getElementById('demo-badge');
 const habitatNameEl = document.getElementById('habitat-name');
 const stopsListEl = document.getElementById('stops-list');
 const clearStopsBtn = document.getElementById('clear-stops-btn');
+const reportObstacleBtn = document.getElementById('report-obstacle-btn');
+const clearObstaclesBtn = document.getElementById('clear-obstacles-btn');
+const obstacleHintEl = document.getElementById('obstacle-hint');
 const toggleRiskLayerEl = document.getElementById('toggle-risk-layer');
 const riskMapNoteEl = document.getElementById('risk-map-note');
 const toggleSlopeLayerEl = document.getElementById('toggle-slope-layer');
@@ -48,14 +63,24 @@ const ROUTE_STYLE = {
   shortest: { color: cssVar('--route-shortest'), dash: '7 7' },
 };
 const CASING_COLOR = cssVar('--bg');
+const DANGER_COLOR = cssVar('--danger') || '#ff9488';
 const ROUTE_ORDER = ['low_risk', 'shortest'];
 
 const PROFILE_HINT = 'Hover the chart to see the point on the map.';
+const OBSTACLE_DEFAULT_HINT = 'Mark impassable ground on the map to recompute routes around it.';
+const OBSTACLE_ACTIVE_HINT = 'Click on the map to mark an impassable obstacle (16 m radius).';
+const OBSTACLE_RADIUS_M = 16;
 
 let grid = null;
+let initialRiskCopy = null;
 let dataLayers = [];
 let enabledLayerIds = [];
 const dataLayerOverlays = new Map();
+
+// User-reported obstacles: [{ id, x, y, radiusM, cells: number[] }]
+let reportedObstacles = [];
+let nextObstacleId = 1;
+let isReportingObstacle = false;
 
 let habitat = null;
 let allStops = [];
@@ -72,6 +97,7 @@ let riskOverlay = null;
 let terrain3d = null;
 let viewMode = '2d'; // '2d' | '3d'
 let routeLayerGroup = null;
+let obstacleLayerGroup = null;
 let hoverMapMarker = null;
 const stopMarkers = new Map();
 
@@ -203,12 +229,141 @@ function renderStopsUI() {
   if (terrain3d) terrain3d.setSelectedStops(selectedStopIds);
 }
 
+/** True when a data layer contributes to route cost (non-zero weight). */
+function hasCostEffect(layer) {
+  return layer.weight != null && layer.weight !== 0;
+}
+
 /**
- * Update the note & opacity on "Estimated risk" when any data layer is switched off,
- * since risk.png represents all layers switched on.
+ * Rebuild grid.risk from the currently enabled data layers and stamp all user-reported obstacles
+ * as RISK_IMPASSABLE (255).
+ */
+function rebuildRiskGrid() {
+  const combined =
+    dataLayers.length > 0
+      ? new Uint8Array(combineRisk(grid, enabledLayerIds))
+      : new Uint8Array(initialRiskCopy);
+
+  for (const obs of reportedObstacles) {
+    for (const idx of obs.cells) {
+      combined[idx] = RISK_IMPASSABLE;
+    }
+  }
+  grid.risk = combined;
+}
+
+/**
+ * Compute all grid cell indices within radiusM of (x, y).
+ */
+function computeObstacleCells(x, y, radiusM = OBSTACLE_RADIUS_M) {
+  const centerCell = xyToCell(grid, x, y);
+  if (!centerCell) return [];
+  const radiusCells = Math.max(1, Math.ceil(radiusM / grid.cellSize));
+  const r2 = radiusM * radiusM;
+  const cells = [];
+  const rMin = Math.max(0, centerCell.row - radiusCells);
+  const rMax = Math.min(grid.rows - 1, centerCell.row + radiusCells);
+  const cMin = Math.max(0, centerCell.col - radiusCells);
+  const cMax = Math.min(grid.cols - 1, centerCell.col + radiusCells);
+
+  for (let r = rMin; r <= rMax; r++) {
+    for (let c = cMin; c <= cMax; c++) {
+      const cx = (c + 0.5) * grid.cellSize;
+      const cy = grid.heightM - (r + 0.5) * grid.cellSize;
+      const dx = cx - x;
+      const dy = cy - y;
+      if (dx * dx + dy * dy <= r2) {
+        cells.push(cellIndex(grid, c, r));
+      }
+    }
+  }
+  if (cells.length === 0) {
+    cells.push(cellIndex(grid, centerCell.col, centerCell.row));
+  }
+  return cells;
+}
+
+function setReportingObstacle(active) {
+  isReportingObstacle = Boolean(active);
+  reportObstacleBtn.setAttribute('aria-pressed', String(isReportingObstacle));
+  reportObstacleBtn.textContent = isReportingObstacle
+    ? 'Click map to place (Cancel)'
+    : 'Report new obstacle';
+  obstacleHintEl.textContent = isReportingObstacle ? OBSTACLE_ACTIVE_HINT : OBSTACLE_DEFAULT_HINT;
+  map2dEl.classList.toggle('is-reporting-obstacle', isReportingObstacle);
+  if (isReportingObstacle && viewMode === '3d') {
+    setViewMode('2d');
+  }
+}
+
+function renderObstaclesOnMap() {
+  if (!obstacleLayerGroup) return;
+  obstacleLayerGroup.clearLayers();
+  clearObstaclesBtn.hidden = reportedObstacles.length === 0;
+
+  for (const obs of reportedObstacles) {
+    const circle = L.circle(xyToLatLng(obs.x, obs.y), {
+      radius: obs.radiusM,
+      color: DANGER_COLOR,
+      weight: 2,
+      fillColor: DANGER_COLOR,
+      fillOpacity: 0.38,
+    })
+      .addTo(obstacleLayerGroup)
+      .bindTooltip('Reported obstacle (impassable) · click to remove');
+
+    circle.on('click', (ev) => {
+      L.DomEvent.stopPropagation(ev);
+      if (isReportingObstacle) {
+        addObstacleAtLatLng(ev.latlng);
+        return;
+      }
+      removeObstacle(obs.id);
+    });
+  }
+}
+
+function addObstacleAtLatLng(latlng) {
+  const { x, y } = latLngToXy(latlng);
+  const cells = computeObstacleCells(x, y, OBSTACLE_RADIUS_M);
+  if (cells.length === 0) return;
+
+  reportedObstacles.push({
+    id: nextObstacleId++,
+    x,
+    y,
+    radiusM: OBSTACLE_RADIUS_M,
+    cells,
+  });
+
+  setReportingObstacle(false);
+  renderObstaclesOnMap();
+  rebuildRiskGrid();
+  recomputeRoutes();
+}
+
+function removeObstacle(id) {
+  reportedObstacles = reportedObstacles.filter((o) => o.id !== id);
+  renderObstaclesOnMap();
+  rebuildRiskGrid();
+  recomputeRoutes();
+}
+
+function clearAllObstacles() {
+  reportedObstacles = [];
+  setReportingObstacle(false);
+  renderObstaclesOnMap();
+  rebuildRiskGrid();
+  recomputeRoutes();
+}
+
+/**
+ * Update the note & opacity on "Estimated risk" when any cost-affecting data layer is switched off,
+ * since risk.png represents all cost layers switched on. Map-only layers (weight 0) do not affect risk.png.
  */
 function updateRiskLayerNote() {
-  const anyOff = dataLayers.length > 0 && enabledLayerIds.length < dataLayers.length;
+  const costLayers = dataLayers.filter(hasCostEffect);
+  const anyOff = costLayers.some((l) => !enabledLayerIds.includes(l.id));
   riskMapNoteEl.hidden = !anyOff;
   if (riskOverlay) {
     riskOverlay.setOpacity(anyOff ? 0.42 : 0.7);
@@ -217,6 +372,7 @@ function updateRiskLayerNote() {
 
 /**
  * Build checkboxes for every data layer in grid.meta.layers (independent of layer count or names).
+ * Layers with weight === 0 (map-only layers such as radiation shelter) start unchecked by default.
  */
 function setupDataLayersUI(bounds) {
   dataLayersListEl.replaceChildren();
@@ -229,12 +385,14 @@ function setupDataLayersUI(bounds) {
   }
 
   dataLayersWrapEl.hidden = false;
-  enabledLayerIds = dataLayers.map((l) => l.id);
+  enabledLayerIds = dataLayers.filter(hasCostEffect).map((l) => l.id);
 
   for (const layer of dataLayers) {
+    const defaultOn = hasCostEffect(layer);
+
     if (layer.img) {
       const ov = L.imageOverlay(grid.base + layer.img, bounds, { opacity: 0.85 });
-      ov.addTo(map);
+      if (defaultOn) ov.addTo(map);
       dataLayerOverlays.set(layer.id, ov);
     }
 
@@ -243,7 +401,7 @@ function setupDataLayersUI(bounds) {
 
     const input = document.createElement('input');
     input.type = 'checkbox';
-    input.checked = true;
+    input.checked = defaultOn;
     input.dataset.layerId = layer.id;
 
     const body = h('span', 'data-layer-body');
@@ -251,7 +409,11 @@ function setupDataLayersUI(bounds) {
 
     const effectParts = [];
     if (layer.effect) effectParts.push(layer.effect);
-    if (layer.weight != null) effectParts.push(`${formatSignedWeight(layer.weight)} risk points · assumption`);
+    if (hasCostEffect(layer)) {
+      effectParts.push(`${formatSignedWeight(layer.weight)} risk points · assumption`);
+    } else if (!layer.effect) {
+      effectParts.push('map only, not in the route cost');
+    }
     if (effectParts.length) {
       body.appendChild(h('span', 'data-layer-effect', effectParts.join(' · ')));
     }
@@ -283,7 +445,7 @@ function setupDataLayersUI(bounds) {
       }
 
       updateRiskLayerNote();
-      grid.risk = combineRisk(grid, enabledLayerIds);
+      rebuildRiskGrid();
       recomputeRoutes();
     });
 
@@ -291,6 +453,7 @@ function setupDataLayersUI(bounds) {
   }
 
   updateRiskLayerNote();
+  rebuildRiskGrid();
 }
 
 /**
@@ -355,7 +518,14 @@ function drawRouteLines() {
           (mean != null ? `, mean estimated risk ${mean.toFixed(1)}` : ''),
         { sticky: true }
       )
-      .on('click', () => selectRouteKind(kind));
+      .on('click', (ev) => {
+        if (isReportingObstacle) {
+          L.DomEvent.stopPropagation(ev);
+          addObstacleAtLatLng(ev.latlng);
+          return;
+        }
+        selectRouteKind(kind);
+      });
   }
 }
 
@@ -393,9 +563,12 @@ function routeRows(route, cells) {
   const activeLayers = dataLayers.filter((l) => enabledLayerIds.includes(l.id));
   for (const layer of activeLayers) {
     const pct = routeLayerSharePct(cells, layer.id);
+    const title = hasCostEffect(layer)
+      ? `${layer.label} (${formatSignedWeight(layer.weight)} risk points · assumption)`
+      : `${layer.label} (${layer.effect || 'map only'})`;
     rows.push({
       label: layer.label,
-      title: `${layer.label} (${formatSignedWeight(layer.weight)} risk points · assumption)`,
+      title,
       value: `${pct} %`,
     });
   }
@@ -785,10 +958,9 @@ function renderConditionsAndLimits(conditions) {
     for (const layer of dataLayers) {
       const block = h('div', 'source');
       const head = h('div', 'source-head');
-      const effectText =
-        layer.weight != null
-          ? `${formatSignedWeight(layer.weight)} pts (${layer.effect || 'assumption'})`
-          : layer.effect || '';
+      const effectText = hasCostEffect(layer)
+        ? `${formatSignedWeight(layer.weight)} pts (${layer.effect || 'assumption'})`
+        : layer.effect || 'map only';
       head.append(h('span', '', layer.label), h('span', '', effectText));
       block.appendChild(head);
 
@@ -902,6 +1074,7 @@ function recomputeRoutes() {
 
 async function main() {
   grid = await loadGrid('../app_data/');
+  initialRiskCopy = new Uint8Array(grid.risk);
   dataLayers = await loadLayers(grid);
   if (grid.meta.mock) {
     demoBadgeEl.hidden = false;
@@ -929,6 +1102,26 @@ async function main() {
   setupDataLayersUI(bounds);
 
   routeLayerGroup = L.layerGroup().addTo(map);
+  obstacleLayerGroup = L.layerGroup().addTo(map);
+
+  map.on('click', (ev) => {
+    if (!isReportingObstacle) return;
+    addObstacleAtLatLng(ev.latlng);
+  });
+
+  reportObstacleBtn.addEventListener('click', () => {
+    setReportingObstacle(!isReportingObstacle);
+  });
+
+  clearObstaclesBtn.addEventListener('click', () => {
+    clearAllObstacles();
+  });
+
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && isReportingObstacle) {
+      setReportingObstacle(false);
+    }
+  });
 
   const [stopsData, conditionsData] = await Promise.all([
     loadJson(grid, 'stops'),
@@ -956,7 +1149,13 @@ async function main() {
       .addTo(map)
       .bindTooltip(stop.description ? `${stop.name}: ${stop.description}` : stop.name);
 
-    marker.on('click', () => toggleStop(stop.id));
+    marker.on('click', () => {
+      if (isReportingObstacle) {
+        addObstacleAtLatLng(marker.getLatLng());
+        return;
+      }
+      toggleStop(stop.id);
+    });
     stopMarkers.set(stop.id, marker);
   }
 

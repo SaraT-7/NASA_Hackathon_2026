@@ -30,7 +30,7 @@
   },
   "risk_model": {
     "slope_limit_deg": 20,
-    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
+    "description": "Estimated risk = slope / 20 deg x 100. Cells at or above 20 deg are impassable: NASA's xEVA suit capability is walking on slopes of up to 20 deg (EVA-EXP-0075, written for lunar missions). Slope is taken from the 1 m elevation model after 1.5 m Gaussian smoothing; each 2 m cell keeps its steepest value. Rocks and loose sand are not in the model yet. Data layers: Ground the Curiosity rover drove on (-20 risk points); No radio line of sight to the habitat (+20 risk points); Boxwork ridges (+15 risk points); Radiation shelter (terrain blocks the sky) (+0 risk points). Combined risk = slope risk + sum of weight x layer score / 100, kept within 0-100; layer weights are our assumptions. Layers never make an impassable cell passable.",
     "layers_formula": "risk = clamp(slope / limit x 100 + sum(weight x layer / 100), 0, 100)"
   },
   "sources": [
@@ -76,6 +76,49 @@
       "cannot_see": "Only one track across the area; ground off the track is not proven either way.",
       "cells_share": 0.0072,
       "km_in_area": 4.11
+    },
+    {
+      "id": "comm",
+      "label": "No radio line of sight to the habitat",
+      "bin": "layers/comm.bin",
+      "img": "layers/comm.png",
+      "weight": 20,
+      "effect": "raises risk",
+      "description": "Cells where terrain blocks the straight line between a suit radio (2 m above ground) and the habitat antenna (3 m mast, assumed). Out of sight, the astronaut cannot call the habitat directly.",
+      "source": "Line of sight computed from the MSL Gale merged DEM (USGS Astrogeology), https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m",
+      "cannot_see": "No relay orbiters, rovers or radio bending around ridges; the 2 m elevation grid smooths narrow crests, so a few shadows may be missed.",
+      "cells_share": 0.7008,
+      "habitat_antenna_m": 3,
+      "suit_antenna_m": 2
+    },
+    {
+      "id": "boxwork",
+      "label": "Boxwork ridges",
+      "bin": "layers/boxwork.bin",
+      "img": "layers/boxwork.png",
+      "weight": 15,
+      "effect": "raises risk",
+      "description": "Ridge lines found in the orbital image where they cross in many directions, the pattern of boxwork. Each crossing means stepping over a ridge 1-2 m high. Ridges are also the science target of this area.",
+      "source": "Rule-based ridge detection on the HiRISE colour mosaic (USGS / JPL), https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm",
+      "cannot_see": "Ridge height is not measured, only the line; some layer edges may still be counted and faint ridges under dust are missed. Not checked against rover images ridge by ridge.",
+      "cells_share": 0.0289,
+      "zone_share": 0.1215,
+      "ridge_km": 26.3
+    },
+    {
+      "id": "sky",
+      "label": "Radiation shelter (terrain blocks the sky)",
+      "bin": "layers/sky.bin",
+      "img": "layers/sky.png",
+      "weight": 0,
+      "effect": "map only, not in the route cost",
+      "description": "Share of the sky hidden by the terrain, shown where it is 15 % or more. Curiosity's RAD measured 4 % less radiation dose next to a butte that blocked 19 % of the sky; scaled the same way, the last measured 0.16 mGy/day falls to about 0.143 mGy/day in the most sheltered spot here. Where to wait out a solar storm.",
+      "source": "Sky view computed from the MSL Gale merged DEM (USGS Astrogeology); dose scaling from MSL RAD measurements at Murray Buttes, Ehresmann et al. 2021, JGR Planets, https://doi.org/10.1029/2021JE006851",
+      "cannot_see": "Terrain more than 800 m away or outside the area (such as upper Mount Sharp) is counted as open sky, so shelter is underestimated. The dose scaling comes from a single measured site; solar storm particles are shielded differently from cosmic rays.",
+      "cells_share": 0.3415,
+      "dose_open_mgy_day": 0.16,
+      "dose_min_mgy_day": 0.1427,
+      "max_sky_blocked": 0.513
     }
   ]
 }
