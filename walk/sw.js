@@ -3,11 +3,10 @@
 // the walk needs is kept on the device: the screen's code, the shared modules, the small map image, the stops and
 // Curiosity's photos. The route chosen in the planner is already in localStorage and needs no network.
 //
-// Strategy: network first, so a fresh version is used whenever the server can be reached; if it cannot (airplane
-// mode, no Wi-Fi, server off), the stored copy is used. A service worker only runs on https:// or http://localhost.
+// Strategy: network first, so a fresh version is used whenever the server can be reached; only if it cannot be
+// reached (airplane mode, no Wi-Fi, server off) is the stored copy used. A service worker only runs on https:// or http://localhost.
 
-const CACHE = 'marswalk-walk-v4';
-const NETWORK_WAIT_MS = 3000; // after this, a stored copy is used instead of waiting for a slow network
+const CACHE = 'marswalk-walk-v5';
 
 // The screen's own files and the shared modules it imports.
 const SHELL = [
@@ -75,24 +74,18 @@ async function fromCache(request) {
 
 async function networkFirst(request) {
   // 'no-cache': always ask the server whether a file changed, so an old copy kept by the browser can never be
-  // mixed with new files (one old module next to new ones stops the whole page).
-  const network = fetch(request, { cache: 'no-cache' }).then(async (response) => {
+  // mixed with new files (one old module next to new ones stops the whole page). The stored copy is used only
+  // when the server cannot be reached at all (airplane mode, no Wi-Fi, server off), never because it is slow.
+  try {
+    const response = await fetch(request, { cache: 'no-cache' });
     if (response.ok && response.type === 'basic') {
       const cache = await caches.open(CACHE);
       await cache.put(request, response.clone());
     }
     return response;
-  });
-  const slow = new Promise((resolve) => setTimeout(resolve, NETWORK_WAIT_MS));
-  try {
-    const first = await Promise.race([network, slow.then(() => null)]);
-    if (first) return first;
-    const stored = await fromCache(request);
-    return stored || (await network);
   } catch {
     const stored = await fromCache(request);
-    if (stored) return stored;
-    return Response.error();
+    return stored || Response.error();
   }
 }
 

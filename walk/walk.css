@@ -1,10 +1,14 @@
-/* walk/ belongs to work stream C. Phone first: one screen, no scrolling, large type, high contrast (sunlight, gloves). */
+/* walk/ belongs to work stream C. Phone first: one screen, no scrolling, large type, high contrast (sunlight, gloves).
+   Look: an instrument panel, not an app. One surface split by thin rules, square corners, small capital labels,
+   fixed-width digits. Colour is kept for meaning only: green / yellow / red / blue status, red "Turn back". */
 :root {
-  --bg: #120e0c;
-  --panel: #261d18;
-  --text: #f3ebe4;
-  --muted: #d2c3b7;
-  --accent: #e2a66f;
+  --bg: #0c0e0f;
+  --panel: #15181a;
+  --line: #2c3236;
+  --text: #eef1f2;
+  --muted: #a4adb2;
+  --accent: #f0b443; /* amber: the next stop on the map and the demo control; nothing the astronaut must read */
+  --digits: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Roboto Mono", monospace;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -16,28 +20,28 @@ body {
 
 header {
   flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
-  padding: 8px 10px; background: var(--panel);
+  padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--line);
 }
-header .title { font-size: 13px; font-weight: 600; white-space: nowrap; }
-header a { color: var(--accent); text-decoration: none; }
+header .title { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; color: var(--muted); }
+header a { color: var(--text); text-decoration: none; }
 .tags { margin-left: auto; display: flex; gap: 4px; }
 .tag {
-  padding: 3px 5px; border-radius: 5px; white-space: nowrap;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 3px 5px; border-radius: 2px; white-space: nowrap;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.03em;
 }
 .tag:empty { display: none; }
-.tag-demo { background: #7a4a12; color: #fff; }
+.tag-demo { border: 1px solid var(--accent); color: var(--accent); padding: 2px 4px; }
 .tag-sim { background: var(--text); color: var(--bg); }
 
-main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; }
+main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; padding: 0 12px 12px; }
 
 /* Status strip: the one answer the astronaut needs. Colour and words always change together.
    It runs edge to edge with square corners so it reads as a sign, not as a button to press. */
 .status {
   flex: none; display: flex; align-items: center; justify-content: center;
   min-height: 40px; margin: 0 -12px; padding: 4px 12px; text-align: center;
-  font-size: 20px; font-weight: 800; letter-spacing: 0.05em;
-  background: #4a3c33; color: var(--text); user-select: none;
+  font-size: 19px; font-weight: 800; letter-spacing: 0.14em;
+  background: #3a4044; color: var(--text); user-select: none;
 }
 .status[data-status="go"] { background: #2fc25b; color: #04210d; }
 .status[data-status="soon"] { background: #ffd21f; color: #2b2100; }
@@ -45,45 +49,49 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 .status[data-status="returning"] { background: #4da3ff; color: #021b36; }
 .status[data-status="done"] { background: var(--text); color: var(--bg); }
 
-.tile { padding: 12px 14px; border-radius: 12px; background: var(--panel); min-width: 0; }
-.tile h2 { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--muted); }
+/* Readouts: no cards. Each one is a strip of the same surface, separated by a thin rule. */
+.tile { padding: 9px 2px 10px; min-width: 0; border-bottom: 1px solid var(--line); }
+.tile h2 { margin: 0 0 3px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .tile p { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+#elapsed, #limit, .tile .dist, .tile .o2-left { font-family: var(--digits); font-weight: 600; letter-spacing: -0.02em; }
 /* Next stop: the name on one line, the distance left on its own line so long names never push it away. */
-#next-name { font-size: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tile .dist { margin-top: 2px; font-size: 34px; white-space: nowrap; color: var(--accent); }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#next-name { font-size: 23px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .dist { margin-top: 2px; font-size: 34px; white-space: nowrap; color: var(--text); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.pair .tile + .tile { padding-left: 12px; border-left: 1px solid var(--line); }
 
 /* Controls: at most three buttons, sized for gloves (64 px or more), always in the same place. */
-.controls { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.controls { flex: none; margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .btn {
-  min-height: 64px; width: 100%; padding: 8px 16px; border: 3px solid transparent; border-radius: 14px;
-  font: inherit; font-size: 24px; font-weight: 800; letter-spacing: 0.02em;
+  min-height: 64px; width: 100%; padding: 8px 16px; border: 3px solid transparent; border-radius: 6px;
+  font: inherit; font-size: 21px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
   touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent; cursor: pointer;
 }
 .btn[hidden] { display: none; }
-.btn:disabled { opacity: 0.35; cursor: default; }
+.btn:disabled { opacity: 0.3; cursor: default; }
 .btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .btn-run { background: var(--text); color: var(--bg); }
-.btn-done { background: var(--accent); color: #241404; }
-.btn-back { background: transparent; color: var(--text); border-color: #ff8a80; }
-.return-info { min-height: 138px; display: flex; flex-direction: column; justify-content: center; border: 3px solid #4da3ff; }
+.btn-done { background: transparent; color: var(--text); border-color: var(--text); }
+.btn-done:not(:disabled) { background: #d9dfe2; color: var(--bg); border-color: #d9dfe2; }
+.btn-back { background: transparent; color: #ff8a80; border-color: #ff8a80; }
+.return-info { min-height: 138px; display: flex; flex-direction: column; justify-content: center; padding: 10px 14px; border: 3px solid #4da3ff; border-radius: 6px; }
 .return-info[hidden] { display: none; }
-.return-info h2 { font-size: 22px; font-weight: 800; color: var(--text); }
-.return-info p { font-size: 16px; font-weight: 500; color: var(--muted); }
+.return-info h2 { font-size: 18px; letter-spacing: 0.08em; color: var(--text); }
+.return-info p { font-size: 15px; font-weight: 500; line-height: 1.3; color: var(--muted); }
 
 /* Map area: the small map while walking; at a stop the stop check covers it. Takes the space that is left. */
-.stage { position: relative; flex: 1 1 auto; min-height: 140px; border-radius: 12px; overflow: hidden; background: #1a1411; }
+.stage { position: relative; flex: 1 1 auto; min-height: 140px; margin: 0 -12px; overflow: hidden; background: #111314; }
 .map-missing::after { content: "Map not available"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
 /* The map layer is larger than the area and turned and tilted in 3D, so the walking direction points up. */
-.map-layer { position: absolute; background: #1a1411; transform-origin: 50% 50%; will-change: transform; }
+.map-layer { position: absolute; background: #111314; transform-origin: 50% 50%; will-change: transform; }
 .map-pin { display: flex; align-items: center; justify-content: center; }
 .map-pin span {
-  display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; box-sizing: border-box;
-  border: 2px solid #fff; border-radius: 50%; font: 800 13px system-ui, sans-serif;
-  background: var(--accent); color: #241404; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; box-sizing: border-box;
+  border: 2px solid #111; border-radius: 50%; font: 800 12px system-ui, sans-serif;
+  background: #fff; color: #111; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
-.map-pin.is-next span { background: #fff; color: #120e0c; box-shadow: 0 0 0 3px var(--accent); }
-.map-habitat span { border-radius: 6px; background: var(--text); color: var(--bg); }
+.map-pin.is-next span { background: var(--accent); color: #1c1200; box-shadow: 0 0 0 3px #fff; }
+.map-habitat span { border-radius: 3px; background: var(--text); color: var(--bg); }
 /* The astronaut: an arrow that always points up, the walking direction. */
 .map-me {
   position: absolute; z-index: 900; width: 0; height: 0; margin: -16px 0 0 -12px; pointer-events: none;
@@ -93,7 +101,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 /* Where north is, since the map turns: a compass-style needle (red half = north) with the N at its tip. */
 .map-north {
   position: absolute; z-index: 900; left: 8px; top: 8px; width: 38px; height: 38px; border-radius: 50%;
-  background: rgba(38, 29, 24, 0.9); border: 2px solid var(--muted); pointer-events: none;
+  background: rgba(12, 14, 15, 0.85); border: 2px solid var(--muted); pointer-events: none;
 }
 .map-needle { position: absolute; inset: 0; display: block; }
 .map-needle::before, .map-needle::after {
@@ -106,69 +114,76 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
   font: 800 10px system-ui, sans-serif; color: #ff6b5e;
 }
 
-/* Demo control: simulation speed. Small, in the corner of the map; not for the astronaut. */
+/* Demo control: simulation speed and pace. Small, in the corner of the map; not for the astronaut. */
 .speed {
-  position: absolute; top: 6px; right: 6px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
 }
 .demo-toggle {
-  height: 24px; padding: 0 9px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
-  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
-  background: rgba(38, 29, 24, 0.88); color: var(--muted); cursor: pointer; touch-action: manipulation;
+  height: 24px; padding: 0 8px; border: 1px dashed var(--accent); border-radius: 3px;
+  font: inherit; font-family: var(--digits); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  background: rgba(12, 14, 15, 0.85); color: var(--accent); cursor: pointer; touch-action: manipulation;
 }
-.demo-toggle[aria-expanded="true"] { color: var(--text); border-color: var(--accent); }
-.demo-rows { display: flex; flex-direction: column; gap: 2px; padding: 3px; border-radius: 9px; background: rgba(38, 29, 24, 0.94); }
+.demo-toggle[aria-expanded="true"] { border-style: solid; }
+.demo-rows { display: flex; flex-direction: column; gap: 2px; padding: 3px; border-radius: 3px; border: 1px solid var(--line); background: rgba(12, 14, 15, 0.94); }
 .demo-rows[hidden] { display: none; }
 .speed-row { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .speed[hidden] { display: none; }
-.speed-label { padding: 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.speed-label { padding: 0 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .speed-btn {
-  min-width: 46px; height: 32px; padding: 0 8px; border: 0; border-radius: 7px;
-  font: inherit; font-size: 14px; font-weight: 700; background: transparent; color: var(--muted);
+  min-width: 46px; height: 32px; padding: 0 8px; border: 0; border-radius: 2px;
+  font: inherit; font-family: var(--digits); font-size: 13px; font-weight: 600; background: transparent; color: var(--muted);
   touch-action: manipulation; cursor: pointer;
 }
-.speed-btn[aria-pressed="true"] { background: var(--accent); color: #241404; }
+.speed-btn[aria-pressed="true"] { background: var(--accent); color: #1c1200; }
 
-/* Small line under a tile's value (the pace behind "Turn back in"). */
-.tile .sub { margin-top: 2px; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Small line under a value (the measured pace behind "Turn back in"); empty while the pace is as planned. */
+.tile .sub {
+  min-height: 1.25em; margin-top: 2px; font-size: 11px; font-weight: 700; line-height: 1.25; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #ffd21f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* Oxygen gauge (estimated from the suit budget). Fill colour follows the status strip. */
-.oxygen { flex: none; padding: 10px 14px 8px; }
+.oxygen { flex: none; padding: 9px 2px 8px; }
 .oxygen-head { display: flex; align-items: baseline; justify-content: space-between; }
 .oxygen h2 { margin: 0; }
-.est { font-weight: 500; }
-.tile .o2-left { font-size: 26px; }
+.est { font-weight: 500; letter-spacing: 0.08em; }
+.tile .o2-left { font-size: 24px; }
 .battery {
-  position: relative; height: 26px; margin: 6px 8px 0 0; border: 3px solid var(--text); border-radius: 7px;
-  background: #1a1411; overflow: visible;
+  position: relative; height: 20px; margin: 6px 8px 0 0; border: 2px solid var(--text); border-radius: 2px;
+  background: #111314; overflow: visible;
 }
 .battery::after { /* the battery nub */
-  content: ""; position: absolute; right: -9px; top: 50%; width: 5px; height: 12px; margin-top: -6px;
-  border-radius: 0 3px 3px 0; background: var(--text);
+  content: ""; position: absolute; right: -7px; top: 50%; width: 4px; height: 10px; margin-top: -5px;
+  border-radius: 0 1px 1px 0; background: var(--text);
 }
-.battery-fill { height: 100%; border-radius: 3px; background: #2fc25b; }
+.battery-fill { height: 100%; background: #2fc25b; }
 .battery-fill[data-status="soon"] { background: #ffd21f; }
 .battery-fill[data-status="now"] { background: #c62828; }
 .battery-fill[data-status="returning"] { background: #4da3ff; }
 .battery-fill[data-status="done"] { background: var(--muted); }
-.battery-home { position: absolute; top: -7px; bottom: -7px; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px #000; }
+.battery-home { position: absolute; top: -6px; bottom: -6px; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px #000; }
 .battery-home[hidden] { display: none; }
-.tile .o2-note { margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .o2-note {
+  margin-top: 6px; font-family: var(--digits); font-size: 11px; font-weight: 500; letter-spacing: 0.02em;
+  color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* Stop card: covers the map at a stop. Curiosity's photo from that spot, the stop, and the oxygen check. */
 .stop-card {
   position: absolute; inset: 0; z-index: 1000; display: flex; flex-direction: column; gap: 6px;
-  padding: 8px; background: var(--panel); border-radius: 12px;
+  padding: 8px 10px; background: var(--panel);
 }
 .stop-card[hidden] { display: none; }
 .stop-top { flex: 1 1 auto; min-height: 0; display: flex; gap: 10px; }
-.stop-photo { position: relative; flex: none; height: 100%; aspect-ratio: 1; margin: 0; border-radius: 8px; overflow: hidden; background: #000; }
+.stop-photo { position: relative; flex: none; height: 100%; aspect-ratio: 1; max-width: 50%; margin: 0; border-radius: 2px; overflow: hidden; background: #000; }
 .stop-photo[hidden] { display: none; }
 .stop-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .stop-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
 .stop-name { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; line-height: 1.2; color: var(--text); }
+#stop-name { min-width: 0; }
 .stop-num {
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
-  border: 2px solid #fff; border-radius: 50%; font-size: 11px; background: #fff; color: #120e0c; box-shadow: 0 0 0 2px var(--accent);
+  border-radius: 50%; font-size: 11px; background: var(--accent); color: #1c1200;
 }
 .stop-desc {
   margin: 0; font-size: 12px; line-height: 1.25; color: var(--muted);
@@ -178,14 +193,14 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 .stop-credit[hidden] { display: none; }
 
 /* Oxygen check inside the stop card. Same thresholds and colours as the status strip. */
-.stop-check { flex: none; padding: 5px 10px; border: 3px solid #6b5648; border-radius: 10px; background: var(--bg); }
+.stop-check { flex: none; padding: 5px 10px; border: 2px solid var(--line); border-left-width: 6px; border-radius: 2px; background: var(--bg); }
 .stop-check[hidden] { display: none; }
 .stop-check[data-verdict="ok"] { border-color: #2fc25b; }
 .stop-check[data-verdict="tight"] { border-color: #ffd21f; }
 .stop-check[data-verdict="no"] { border-color: #c62828; }
 .check-result { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 15px; font-weight: 700; }
 .check-plan { margin: 3px 0 0; font-size: 12px; line-height: 1.3; color: var(--muted); }
-.verdict { padding: 2px 6px; border-radius: 5px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; }
+.verdict { padding: 2px 6px; border-radius: 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; }
 .stop-check[data-verdict="ok"] .verdict { background: #2fc25b; color: #04210d; }
 .stop-check[data-verdict="tight"] .verdict { background: #ffd21f; color: #2b2100; }
 .stop-check[data-verdict="no"] .verdict { background: #c62828; color: #fff; }
@@ -193,33 +208,33 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; 
 /* Small phones and wrist-sized screens (shorter than the 390 x 844 design). Same content, tighter spacing;
    the three buttons keep their 64 px glove size. At a stop the "Next stop" tile only repeats the card, so it
    steps aside and the card gets that room. */
-@media (max-width: 389px) {
-  header { flex-wrap: nowrap; gap: 6px; padding: 7px 8px; }
-  header .title { font-size: 12px; }
+@media (max-width: 399px) {
+  header { flex-wrap: nowrap; gap: 6px; padding: 7px 10px; }
+  header .title { font-size: 10px; letter-spacing: 0.02em; }
   .tags { gap: 3px; }
-  .tag { padding: 3px 4px; font-size: 8.5px; letter-spacing: 0; }
+  .tag { padding: 3px 3px; font-size: 8px; letter-spacing: 0; }
+  .tag-demo { padding: 2px 3px; }
 }
 @media (max-height: 800px) {
-  main { gap: 6px; padding: 6px 10px 8px; }
-  .stage { min-height: 110px; }
-  .status { min-height: 34px; margin: 0 -10px; padding: 3px 10px; font-size: 17px; }
-  .tile { padding: 7px 12px; border-radius: 10px; }
-  .tile h2 { margin-bottom: 1px; font-size: 12px; }
+  main { padding: 0 10px 8px; }
+  .stage { min-height: 110px; margin: 0 -10px; }
+  .status { min-height: 34px; margin: 0 -10px; padding: 3px 10px; font-size: 16px; }
+  .tile { padding: 5px 2px 6px; }
+  .tile h2 { margin-bottom: 1px; font-size: 10px; }
   .tile p { font-size: 22px; }
-  .tile .sub { margin-top: 0; font-size: 11px; }
-  .speed-btn { height: 28px; min-width: 42px; font-size: 13px; }
+  .tile .sub { margin-top: 0; font-size: 10px; }
+  .speed-btn { height: 28px; min-width: 42px; font-size: 12px; }
   .tile-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: baseline; }
   .tile-next h2 { grid-column: 1 / -1; }
   #next-name { font-size: 20px; }
   .tile .dist { margin-top: 0; font-size: 26px; }
-  .pair { gap: 6px; }
-  .oxygen { padding: 6px 12px 8px; }
+  .oxygen { padding: 5px 2px 7px; }
   .tile .o2-left { font-size: 20px; }
   .tile .o2-note { display: none; }
   .battery { margin-top: 4px; }
-  .controls { gap: 6px; }
+  .controls { gap: 6px; padding-top: 8px; }
   .return-info { min-height: 134px; }
-  .return-info h2 { font-size: 18px; }
-  .return-info p { font-size: 15px; line-height: 1.3; }
+  .return-info h2 { font-size: 17px; }
+  .return-info p { font-size: 14px; }
   body[data-phase="at_stop"] .tile-next { display: none; }
 }

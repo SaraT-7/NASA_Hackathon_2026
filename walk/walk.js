@@ -39,10 +39,9 @@ function setText(node, text) {
 
 /** Under "Turn back in": whether the times still to walk are the planned ones or stretched to the measured pace. */
 function paceNote(s) {
-  if (s.phase === PHASE.DONE) return '';
-  if (s.pacePct == null) return 'planned pace';
-  if (s.slowdown <= 1) return 'pace as planned';
-  return `your pace: ${Math.round(s.pacePct)}\u00a0% of plan`;
+  // Shown only when it changes the answer: the astronaut is slower than planned.
+  if (s.phase === PHASE.DONE || s.pacePct == null || s.slowdown <= 1) return '';
+  return `pace ${Math.round(s.pacePct)}\u00a0% of plan`;
 }
 
 function drawIndicators(s) {
@@ -74,6 +73,13 @@ function drawControls(s) {
 
   const run = el('btn-run');
   setText(run, s.phase === PHASE.READY ? 'Start' : s.phase === PHASE.DONE ? 'New walk' : s.running ? 'Pause' : 'Resume');
+  // At a stop the clock already waits (the stop's work time is added by "Done here"), so Pause would do nothing.
+  run.disabled = s.phase === PHASE.AT_STOP;
+
+  // At the last stop "Done here" also starts the walk home: say so, so it is not mistaken for "Turn back"
+  // (which leaves at once, without the stop's work, skipping any stops left).
+  const lastStop = s.phase === PHASE.AT_STOP && s.stopsDone + 1 >= s.stopsTotal;
+  setText(el('btn-done'), lastStop ? 'Done · go home' : 'Done here');
 
   // On the way home these two are removed, not greyed out: there is nothing left to decide.
   el('btn-done').hidden = headingHome;
@@ -100,11 +106,11 @@ function drawOxygen(s, statusKey) {
   el('o2-fill').dataset.status = statusKey;
   el('o2-home').style.left = `${Math.min(100, g.homePct)}%`;
   el('o2-home').hidden = g.homePct <= 0;
-  const budget = `100\u00a0% = ${Math.round((ASSUMPTIONS.EVA_LIMIT_S / 3600) * 10) / 10} h suit budget.`;
+  const budget = `100\u00a0% = ${Math.round((ASSUMPTIONS.EVA_LIMIT_S / 3600) * 10) / 10}\u00a0h suit budget`;
   let note;
-  if (s.phase === PHASE.DONE) note = `Back inside with ${pct(g.leftPct)}\u00a0% left.`;
+  if (s.phase === PHASE.DONE) note = `${pct(g.leftPct)}\u00a0% left at the habitat`;
   else if (g.homePct <= 0) note = budget;
-  else note = `Line: walk back needs ${pct(g.homePct)}\u00a0%. ${budget}`;
+  else note = `line: walk back ${pct(g.homePct)}\u00a0% · ${budget}`;
   setText(el('o2-note'), note);
 }
 
