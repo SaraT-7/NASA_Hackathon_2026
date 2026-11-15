@@ -323,11 +323,12 @@ function setAddingStop(active) {
     setReportingObstacle(false);
   }
   addStopBtn.setAttribute('aria-pressed', String(isAddingStop));
-  addStopBtn.textContent = isAddingStop ? 'Click map to place (Cancel)' : '+ Add Boxwork stop on map';
+  addStopBtn.textContent = isAddingStop
+    ? 'Adding Boxwork stops: ON (Click to lock)'
+    : '+ Add Boxwork stop on map';
+  addStopHintEl.hidden = !isAddingStop;
   addStopHintEl.classList.remove('is-error');
-  addStopHintEl.textContent = isAddingStop
-    ? 'Click anywhere on the map to place the new Boxwork stop.'
-    : 'Tip: Click any spot on the map to add a new Boxwork target.';
+  addStopHintEl.textContent = 'Click on the map to add Boxwork stops. Press the button again to lock.';
   map2dEl.classList.toggle('is-adding-stop', isAddingStop);
   if (isAddingStop && viewMode === '3d') {
     setViewMode('2d');
@@ -363,7 +364,6 @@ function addCustomStopAtLatLng(latlng) {
   selectedStopIds.push(newStop.id);
   addStopMarkerToMap(newStop);
   if (terrain3d) terrain3d.setStops(allStops);
-  setAddingStop(false);
   renderStopsUI();
   recomputeRoutes();
 }
@@ -1318,8 +1318,9 @@ async function main() {
       addObstacleAtLatLng(ev.latlng);
       return;
     }
-    // Clicking anywhere on the map adds a new Boxwork stop at that point (both via button or direct map click)
-    addCustomStopAtLatLng(ev.latlng);
+    if (isAddingStop) {
+      addCustomStopAtLatLng(ev.latlng);
+    }
   });
 
   addStopBtn.addEventListener('click', () => {

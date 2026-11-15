@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MarsWalk · Plan</title>
   <link rel="stylesheet" href="../shared/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="plan.css?v=4">
+  <link rel="stylesheet" href="plan.css?v=5">
 </head>
 <body>
   <header class="topbar">
@@ -26,7 +26,7 @@
           <h2>Stops</h2>
           <button id="clear-stops-btn" class="link-btn" type="button" hidden>Clear</button>
         </div>
-        <p class="hint">Select stops in visit order, or click anywhere on the map to add a new Boxwork stop.</p>
+        <p class="hint">Select stops in the order you will visit them, in this list or on the map.</p>
         <div class="stop stop-habitat">
           <span class="stop-marker" aria-hidden="true">H</span>
           <span class="stop-text">
@@ -47,7 +47,7 @@
           <button id="add-stop-btn" class="add-stop-btn" type="button" aria-pressed="false">
             + Add Boxwork stop on map
           </button>
-          <p id="add-stop-hint" class="hint custom-stop-hint">
+          <p id="add-stop-hint" class="hint custom-stop-hint" hidden>
             Tip: Click any spot on the map to add a new Boxwork target.
           </p>
         </div>
@@ -150,6 +150,6 @@
   </div>
 
   <script src="../shared/vendor/leaflet/leaflet.js"></script>
-  <script type="module" src="plan.js?v=4"></script>
+  <script type="module" src="plan.js?v=5"></script>
 </body>
 </html>
