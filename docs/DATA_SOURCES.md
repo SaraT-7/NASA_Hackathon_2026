@@ -34,6 +34,7 @@ Her öğe üç türden biridir:
 | 17 | Durakta 20 dk çalışma | Varsayım (bizim) | — | `shared/walk-model.js` |
 | 18 | Oksijen göstergesi | Türetilmiş (15'ten) | Sensör yok; 6 saatlik bütçe yüzdeye çevrildi | `walk/oxygen.js` |
 | 19 | Rota arama | Yöntem | A* (8 komşu), maliyet = mesafe × (1 + ağırlık × risk / 100) | `plan/astar.js` |
+| 20 | Kask kamerası: kum tespiti (deneysel) | Türetilmiş (eğitilmiş model) | AI4Mars (NASA JPL) etiketleriyle eğitilen segmentasyon modeli | `camera/`, `pipeline/colab_ai4mars_terrain.ipynb` |
 
 ## 2. Ayrıntı
 
@@ -160,6 +161,17 @@ risk = clamp( round( eğim / 20 × 100  +  Σ ağırlık × katman / 100 ), 0, 1
 ### 19 · Rota arama (yöntem)
 
 - A*, 8 komşu, 2 m hücre. Adım maliyeti = mesafe × (1 + ağırlık × risk / 100). Veri olmayan hücre en yüksek risk sayılır. Tarayıcıda çalışır (0,04–0,15 sn).
+
+### 20 · Kask kamerası: kum tespiti (deneysel; rotaya girmez)
+
+- **Fikir:** Yörünge görüntüsü gevşek kumu sağlam zeminden güvenle ayıramıyor; yerden bakan bir kamera ayırabiliyor. `camera/` sayfası bunu gösterir.
+- **Veri:** AI4Mars (NASA JPL; Swan ve diğ. 2021, doi:10.1109/CVPRW53098.2021.00226). Curiosity Navcam fotoğrafları, gönüllüler tarafından piksel piksel soil / bedrock / sand / big rock olarak etiketlenmiş; test seti NASA rover sürücüleri ve bilim insanlarınca etiketlenmiş 322 görüntü. Hugging Face kopyası `hassanjbara/AI4MARS` (CC0).
+- **Model:** DeepLabv3 + MobileNetV3-Large (torchvision, COCO ön eğitimli), 4 700 etiketli görüntüyle 10 tur ince ayar (Colab T4). Tarayıcıda onnxruntime-web (WebAssembly) ile çalışır; fotoğraf başına ~0,5–1 sn; hiçbir veri dışarı gitmez.
+- **Test sonucu (yalnız kum, en temkinli bölüm test_min1):** uzmanların işaretlediği kumun **%90'ını** buluyor; kum dediği yerlerin **%95'i** gerçekten kum (IoU 0,86). Diğer bölümler: %96 / %97 ve %98 / %98. En iyi tur test_min3 ile seçildiği için o sayılar biraz iyimser; test_min1'i söylüyoruz.
+- **Kaya yok (bilinçli):** büyük kaya sınıfı zayıf (test_min1'de IoU 0,10). "Emin olma" eşiğini %90'a çıkarmak düzeltmedi (0,11); sorun model değil, eğitim verisinde etiketli kaya azlığı. Sonraki adım: elle etiketlenmiş Perseverance / Curiosity fotoğraflarıyla YOLO.
+- **Durak fotoğraflarında:** üç durakta da yakın alanın %92–100'ü ana kaya, kum %0–0,5. Yörünge görüntüsünde de durakların 15 m çevresinde kum bulunmamıştı: iki bağımsız yöntem çelişmiyor (güçlü bir kanıt değil).
+- **Göremedikleri:** Yalnız Curiosity Navcam ile eğitildi; başka kameralar ve renkli fotoğraflar daha az güvenilir. Gökyüzü ve ~30 m ötesi hiç etiketlenmediği için sayfa varsayılan olarak yalnız fotoğrafın alt yarısını (yakın alan) boyar ve sayar.
+- **EN:** "Orbital maps cannot tell loose sand from firm ground. A helmet camera can: trained on NASA's AI4Mars labels, our model finds 90 % of the sand that NASA experts marked, and 95 % of what it calls sand really is sand. It runs in the browser."
 
 ## 3. Doğrulama kanıtları
 

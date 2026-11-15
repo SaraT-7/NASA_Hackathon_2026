@@ -1,0 +1,26 @@
+[
+ {
+  "id": "ai4mars_test_1",
+  "file": "samples/ai4mars_test_1.jpg",
+  "expert": "samples/ai4mars_test_1_expert.png",
+  "title": "NASA expert test image 1",
+  "source": "NLB_512555058EDR_F0532644NCAM00264M1.JPG",
+  "credit": "NASA/JPL-Caltech; labels: AI4Mars expert test set"
+ },
+ {
+  "id": "ai4mars_test_2",
+  "file": "samples/ai4mars_test_2.jpg",
+  "expert": "samples/ai4mars_test_2_expert.png",
+  "title": "NASA expert test image 2",
+  "source": "NLB_504391382EDR_F0520004NCAM07753M1.JPG",
+  "credit": "NASA/JPL-Caltech; labels: AI4Mars expert test set"
+ },
+ {
+  "id": "ai4mars_test_3",
+  "file": "samples/ai4mars_test_3.jpg",
+  "expert": "samples/ai4mars_test_3_expert.png",
+  "title": "NASA expert test image 3",
+  "source": "NLB_504391195EDR_F0520004NCAM07753M1.JPG",
+  "credit": "NASA/JPL-Caltech; labels: AI4Mars expert test set"
+ }
+]
