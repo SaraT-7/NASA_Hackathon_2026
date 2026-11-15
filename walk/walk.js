@@ -29,9 +29,23 @@ let walkMap = null; // stays null if the map cannot be drawn; the walk still wor
 let stopInfo = new Map(); // stop id -> entry from stops.json (description, photo); empty if it cannot be read
 let photoBase = '../app_data/';
 let shownStopId = null;
+let lastPhase = null;
 let speed = DEMO_SPEEDS[0];
 let pace = DEMO_PACES[0];
 let lastFrameMs = null;
+
+const arriveAudio = new Audio('arrive.mp3');
+arriveAudio.preload = 'auto';
+
+function playArrivalSound() {
+  try {
+    arriveAudio.currentTime = 0;
+    const p = arriveAudio.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch {
+    // Ignore audio errors if blocked by browser autoplay policy
+  }
+}
 
 function setText(node, text) {
   if (node.textContent !== text) node.textContent = text;
@@ -123,6 +137,7 @@ function drawStopCard(s) {
   }
   if (shownStopId === s.nextStop.id) return; // filled once per stop
   shownStopId = s.nextStop.id;
+  playArrivalSound();
   const info = stopInfo.get(s.nextStop.id) || {};
   setText(el('stop-num'), String(s.stopsDone + 1)); // same number as on the map
   el('stop-num').title = `Stop ${s.stopsDone + 1} of ${s.stopsTotal}`;
@@ -157,6 +172,10 @@ function drawCheck(s) {
 
 function draw() {
   const s = walk.snapshot();
+  if (s.phase === PHASE.DONE && lastPhase && lastPhase !== PHASE.DONE) {
+    playArrivalSound();
+  }
+  lastPhase = s.phase;
   if (walkMap) walkMap.update(s);
   document.body.dataset.phase = s.phase; // lets the small-screen layout give the stop card more room
   el('speed').hidden = s.phase === PHASE.AT_STOP; // the clock waits at a stop, and the stop card covers the map
