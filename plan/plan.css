@@ -1,25 +1,26 @@
 /* plan/ belongs to work stream B.
-   Palette follows the landing page (index.html) so Plan and Walk read as one product.
+   Instrument-panel palette shared with walk/ so Plan and Walk read as one product.
    System fonts only: the site must open offline. */
 
 :root {
-  --bg: #1b1512;
-  --surface: #261d18;
-  --line: #3b2f28;
-  --line-strong: #6b5648;
-  --text: #f3ebe4;
-  --muted: #d2c3b7;
-  --faint: #a39386;
-  --accent: #e2a66f;
-  --accent-ink: #1b1512;
-  --demo: #7a4a12;
-  --danger: #ff9488;
+  --bg: #0c0e0f;
+  --surface: #15181a;
+  --line: #2c3236;
+  --line-strong: #4a5257;
+  --text: #eef1f2;
+  --muted: #a4adb2;
+  --faint: #7d868b;
+  --accent: #f0b443;
+  --accent-ink: #1c1200;
+  --demo: #f0b443;
+  --danger: #ff8a80;
 
   /* Route colours are chosen against the tan terrain image, not the panels. plan.js reads them. */
   --route-low-risk: #6cb6ff;
   --route-shortest: #ffffff;
 
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --digits: ui-monospace, Consolas, monospace;
   --topbar-h: 44px;
 }
 
@@ -63,18 +64,29 @@ a { color: var(--accent); }
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
   white-space: nowrap;
 }
 
-.topbar-title a { text-decoration: none; }
-.topbar-title a:hover { text-decoration: underline; }
-.topbar-title h1 { font-size: 15px; font-weight: 600; }
+.topbar-title a { color: var(--text); text-decoration: none; }
+.topbar-title a:hover { color: var(--accent); text-decoration: underline; }
+.topbar-title h1 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .topbar-sep { color: var(--faint); }
 
 .topbar-status {
   color: var(--faint);
   font-size: 12px;
+  font-family: var(--digits);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -83,13 +95,15 @@ a { color: var(--accent); }
 .topbar-status.is-error { color: var(--danger); }
 
 .demo-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--demo);
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border: 1px solid var(--demo);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--demo);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -125,8 +139,11 @@ a { color: var(--accent); }
 
 .block h2,
 .profile h2 {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .block > h2 { margin-bottom: 8px; }
@@ -150,7 +167,10 @@ a { color: var(--accent); }
   border: 0;
   background: none;
   color: var(--accent);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -182,6 +202,7 @@ button.stop:hover .stop-name { color: var(--accent); }
   place-items: center;
   border: 1.5px solid var(--line-strong);
   border-radius: 50%;
+  font-family: var(--digits);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -289,7 +310,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 
 .add-stop-btn[aria-pressed="true"] {
   border-color: var(--accent);
-  background: rgba(226, 166, 111, 0.18);
+  background: rgba(240, 180, 67, 0.18);
   color: var(--text);
 }
 
@@ -323,7 +344,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 
 .obstacle-btn[aria-pressed="true"] {
   border-color: var(--danger);
-  background: rgba(255, 148, 136, 0.16);
+  background: rgba(255, 138, 128, 0.16);
   color: var(--danger);
 }
 
@@ -367,8 +388,10 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 .subhead {
   margin-bottom: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .data-layers-list {
@@ -550,7 +573,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   padding: 2px;
   border: 1px solid var(--line-strong);
   border-radius: 7px;
-  background: rgba(27, 21, 18, 0.9);
+  background: rgba(12, 14, 15, 0.9);
   backdrop-filter: blur(4px);
 }
 
@@ -586,7 +609,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   padding: 6px 10px;
   border: 1px solid var(--line-strong);
   border-radius: 7px;
-  background: rgba(27, 21, 18, 0.9);
+  background: rgba(12, 14, 15, 0.9);
   backdrop-filter: blur(4px);
   font-size: 12px;
 }
@@ -600,6 +623,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 
 .exag-label strong {
   min-width: 24px;
+  font-family: var(--digits);
   color: var(--text);
 }
 
@@ -638,7 +662,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 .leaflet-bar a.leaflet-disabled { background: var(--bg); color: var(--line-strong); }
 
 .leaflet-container .leaflet-control-attribution {
-  background: rgba(27, 21, 18, 0.75);
+  background: rgba(12, 14, 15, 0.75);
   color: var(--faint);
   font-size: 10px;
 }
@@ -716,7 +740,8 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 .profile-readout {
   flex: none;
   color: var(--faint);
-  font-size: 12px;
+  font-family: var(--digits);
+  font-size: 11px;
 }
 
 .profile-plot {
@@ -732,14 +757,14 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 }
 
 #profile-svg text {
-  font-family: var(--font);
+  font-family: var(--digits);
   font-size: 11px;
   fill: var(--faint);
 }
 
 #profile-svg .grid-line { stroke: var(--line); stroke-width: 1; }
 #profile-svg .stop-line { stroke: var(--line-strong); stroke-width: 1; }
-#profile-svg .stop-label { fill: var(--muted); }
+#profile-svg .stop-label { font-family: var(--font); fill: var(--muted); }
 #profile-svg .marker { fill: #ffffff; stroke: var(--accent-ink); stroke-width: 1.5; }
 #profile-svg .marker-text { fill: var(--accent-ink); font-size: 10px; font-weight: 600; }
 #profile-svg .cursor-line { stroke: var(--muted); stroke-width: 1; }
@@ -790,13 +815,17 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   font-size: 12px;
 }
 
+.route-card > span:not(.route-head) {
+  font-family: var(--digits);
+}
+
 .compare-labels > span:first-child,
 .route-card > span:first-child { border-top: 0; }
 
 .route-card {
   padding: 4px 10px 6px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: none;
   text-align: left;
   cursor: pointer;
@@ -860,6 +889,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 }
 
 .over-limit {
+  font-family: var(--font);
   color: var(--danger);
   font-size: 12px;
   font-weight: 600;
@@ -902,11 +932,13 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   border-radius: 6px;
   background: var(--accent);
   color: var(--accent-ink);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
-.primary-btn:hover:not(:disabled) { background: #ecb783; }
+.primary-btn:hover:not(:disabled) { background: #f5c463; }
 
 .primary-btn:disabled {
   background: var(--surface);
@@ -927,7 +959,9 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   gap: 12px;
   margin-bottom: 2px;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .cond-group-head a { flex: none; }
@@ -941,6 +975,7 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 }
 
 .cond-value {
+  font-family: var(--digits);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -954,7 +989,11 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 /* Data and limits */
 
 .limits summary {
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -962,8 +1001,10 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 
 .limits-body h3 {
   margin: 14px 0 4px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
@@ -985,6 +1026,8 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
 
 .source-head > span:last-child {
   flex: none;
+  font-family: var(--digits);
+  font-size: 12px;
   font-weight: 600;
 }
 
