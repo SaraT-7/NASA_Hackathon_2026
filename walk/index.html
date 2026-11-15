@@ -26,8 +26,11 @@
   <main>
     <div id="stage" class="stage" aria-label="Map: route, stops and simulated position, turned to the walking direction">
       <div id="speed" class="speed" aria-label="Demo controls: they change the simulation, not the astronaut's data">
-        <div id="speed-row" class="speed-row" role="group" aria-label="Demo control: simulation speed"><span class="speed-label">demo speed</span></div>
-        <div id="pace-row" class="speed-row" role="group" aria-label="Demo control: simulated walker's pace compared with the plan"><span class="speed-label">demo pace</span></div>
+        <button id="demo-toggle" class="demo-toggle" type="button" aria-expanded="false" aria-controls="demo-rows">demo</button>
+        <div id="demo-rows" class="demo-rows" hidden>
+          <div id="speed-row" class="speed-row" role="group" aria-label="Demo control: simulation speed"><span class="speed-label">demo speed</span></div>
+          <div id="pace-row" class="speed-row" role="group" aria-label="Demo control: simulated walker's pace compared with the plan"><span class="speed-label">demo pace</span></div>
+        </div>
       </div>
       <section id="stop-card" class="stop-card" hidden>
         <div class="stop-top">
