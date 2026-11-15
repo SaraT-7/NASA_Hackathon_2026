@@ -6,7 +6,7 @@
 import { returnTimeS } from '../shared/route.js';
 import { ASSUMPTIONS } from '../shared/walk-model.js';
 import { PHASE } from './state.js';
-import { TURN_BACK_SOON_S } from './status.js';
+import { TURN_BACK_SOON_S, slowdownOf } from './status.js';
 
 export const VERDICT = Object.freeze({
   OK: { key: 'ok', label: 'ENOUGH OXYGEN' },
@@ -46,19 +46,20 @@ export function nextStopCheck(route, snapshot) {
   const next = stops[snapshot.stopsDone + 1] || null;
 
   const haveS = ASSUMPTIONS.EVA_LIMIT_S - snapshot.elapsedS; // suit budget still left
+  const k = slowdownOf(snapshot); // walking still to do takes this much longer than planned
 
   if (!next) {
     // Last stop: finish the work here, then walk back to the habitat.
-    const needS = workS + returnTimeS(route, hereIndex);
+    const needS = workS + returnTimeS(route, hereIndex) * k;
     const spareS = haveS - needS;
     return { last: true, here, next: null, distM: 0, walkS: 0, workS, haveS, needS, spareS, verdict: verdictFor(spareS) };
   }
 
   // Finish here, walk on to the next stop, work there, then walk back to the habitat from there.
   const nextIndex = pointIndexOf(route, next);
-  const walkS = Math.max(0, points[nextIndex].time - points[hereIndex].time);
+  const walkS = Math.max(0, points[nextIndex].time - points[hereIndex].time) * k;
   const distM = Math.max(0, points[nextIndex].dist - points[hereIndex].dist);
-  const needS = workS + walkS + workS + returnTimeS(route, nextIndex);
+  const needS = workS + walkS + workS + returnTimeS(route, nextIndex) * k;
   const spareS = haveS - needS;
   return { last: false, here, next, distM, walkS, workS, haveS, needS, spareS, verdict: verdictFor(spareS) };
 }

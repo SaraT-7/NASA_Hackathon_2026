@@ -16,9 +16,15 @@ export const STATUS = Object.freeze({
   DONE: { key: 'done', label: 'AT HABITAT' },
 });
 
-/** Seconds left before the astronaut must start walking back. Negative once that moment has passed. */
+/** How much longer than planned the walking is taking (1 = as planned); see snapshot.slowdown in state.js. */
+export const slowdownOf = (snapshot) => (snapshot.slowdown > 1 ? snapshot.slowdown : 1);
+
+/**
+ * Seconds left before the astronaut must start walking back. Negative once that moment has passed.
+ * The walk back is the shared returnTimeS(), stretched when the astronaut has been slower than planned.
+ */
 export function turnBackInS(route, snapshot) {
-  return ASSUMPTIONS.EVA_LIMIT_S - snapshot.elapsedS - returnTimeS(route, snapshot.pointIndex);
+  return ASSUMPTIONS.EVA_LIMIT_S - snapshot.elapsedS - returnTimeS(route, snapshot.pointIndex) * slowdownOf(snapshot);
 }
 
 /**

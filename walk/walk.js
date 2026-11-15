@@ -14,6 +14,9 @@ const MAX_FRAME_S = 0.25;
 
 /** Demo control: simulated seconds per real second. The first entry is the default. */
 const DEMO_SPEEDS = [1, 30, 120];
+// Demo control: how fast the simulated walker moves compared with the plan. Slower than planned shortens
+// "Turn back in" (docs/tasks/C_WALK.md, "Çekirdekten sonra" 2); 30 % makes the strip turn yellow, then red.
+const DEMO_PACES = [1, 0.6, 0.3];
 
 const RETURN_MARGIN_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
 const RETURN_NOTE = `Same path, walked back. Planned time includes a ${RETURN_MARGIN_PCT}\u00a0% safety margin.`;
@@ -27,10 +30,19 @@ let stopInfo = new Map(); // stop id -> entry from stops.json (description, phot
 let photoBase = '../app_data/';
 let shownStopId = null;
 let speed = DEMO_SPEEDS[0];
+let pace = DEMO_PACES[0];
 let lastFrameMs = null;
 
 function setText(node, text) {
   if (node.textContent !== text) node.textContent = text;
+}
+
+/** Under "Turn back in": whether the times still to walk are the planned ones or stretched to the measured pace. */
+function paceNote(s) {
+  if (s.phase === PHASE.DONE) return '';
+  if (s.pacePct == null) return 'planned pace';
+  if (s.slowdown <= 1) return 'pace as planned';
+  return `your pace: ${Math.round(s.pacePct)}\u00a0% of plan`;
 }
 
 function drawIndicators(s) {
@@ -53,6 +65,7 @@ function drawIndicators(s) {
     setText(el('limit-label'), 'Turn back in');
     setText(el('limit'), formatDuration(r.turnBackInS));
   }
+  setText(el('pace-note'), paceNote(s));
   return r.status.key;
 }
 
@@ -168,7 +181,10 @@ function bindControls() {
   el('btn-run').addEventListener('click', () => {
     const s = walk.snapshot();
     if (s.phase === PHASE.READY) walk.start();
-    else if (s.phase === PHASE.DONE) walk = createWalk(route); // "New walk": back to the start, same route
+    else if (s.phase === PHASE.DONE) { // "New walk": back to the start, same route, same demo pace
+      walk = createWalk(route);
+      walk.setSimPace(pace);
+    }
     else if (s.running) walk.pause();
     else walk.resume();
     draw();
@@ -184,22 +200,31 @@ function bindControls() {
 }
 
 /** Small speed switch for demos. It is not one of the astronaut's three buttons. */
-function buildSpeedControl() {
-  const group = el('speed');
-  for (const value of DEMO_SPEEDS) {
+/** One row of demo buttons; the pressed one is marked, and onPick receives its value. */
+function buildDemoRow(rowId, values, label, current, onPick) {
+  const row = el(rowId);
+  for (const value of values) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'speed-btn';
-    button.textContent = `×${value}`;
-    button.setAttribute('aria-pressed', String(value === speed));
+    button.textContent = label(value);
+    button.setAttribute('aria-pressed', String(value === current));
     button.addEventListener('click', () => {
-      speed = value;
-      for (const other of group.querySelectorAll('.speed-btn')) {
+      onPick(value);
+      for (const other of row.querySelectorAll('.speed-btn')) {
         other.setAttribute('aria-pressed', String(other === button));
       }
     });
-    group.append(button);
+    row.append(button);
   }
+}
+
+function buildSpeedControl() {
+  buildDemoRow('speed-row', DEMO_SPEEDS, (v) => `×${v}`, speed, (v) => { speed = v; });
+  buildDemoRow('pace-row', DEMO_PACES, (v) => `${Math.round(v * 100)}\u00a0%`, pace, (v) => {
+    pace = v;
+    walk.setSimPace(v);
+  });
 }
 
 async function main() {
@@ -212,6 +237,7 @@ async function main() {
   el('badge').textContent = demo ? 'DEMO ROUTE' : route.mock ? 'DEMO TERRAIN' : '';
 
   walk = createWalk(route);
+  walk.setSimPace(pace);
   try {
     const grid = await loadGridMeta('../app_data/');
     photoBase = grid.base;
@@ -239,3 +265,11 @@ main().catch((err) => {
   el('next-name').textContent = err.message;
   console.error(err);
 });
+
+// Offline: keep the screen and its data on the device after the first visit (walk/sw.js). Browsers allow this only
+// on https:// or http://localhost; elsewhere the page simply works online as before.
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((err) => console.warn('Offline copy not available:', err.message));
+  });
+}
