@@ -199,7 +199,6 @@ function bindControls() {
   });
 }
 
-/** Small speed switch for demos. It is not one of the astronaut's three buttons. */
 /** One row of demo buttons; the pressed one is marked, and onPick receives its value. */
 function buildDemoRow(rowId, values, label, current, onPick) {
   const row = el(rowId);
@@ -219,12 +218,28 @@ function buildDemoRow(rowId, values, label, current, onPick) {
   }
 }
 
+const paceLabel = (v) => `${Math.round(v * 100)}\u00a0%`;
+
+/**
+ * Demo controls, folded into one small chip in the corner of the map so they do not cover the route.
+ * The chip shows the current settings; tapping it opens the speed and pace rows. Not for the astronaut.
+ */
 function buildSpeedControl() {
-  buildDemoRow('speed-row', DEMO_SPEEDS, (v) => `×${v}`, speed, (v) => { speed = v; });
-  buildDemoRow('pace-row', DEMO_PACES, (v) => `${Math.round(v * 100)}\u00a0%`, pace, (v) => {
+  const toggle = el('demo-toggle');
+  const rows = el('demo-rows');
+  const showChip = () => setText(toggle, `demo ×${speed} · ${paceLabel(pace)}`);
+  const setOpen = (open) => {
+    rows.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+  };
+  toggle.addEventListener('click', () => setOpen(rows.hidden));
+  buildDemoRow('speed-row', DEMO_SPEEDS, (v) => `×${v}`, speed, (v) => { speed = v; showChip(); });
+  buildDemoRow('pace-row', DEMO_PACES, paceLabel, pace, (v) => {
     pace = v;
     walk.setSimPace(v);
+    showChip();
   });
+  showChip();
 }
 
 async function main() {

@@ -6,7 +6,7 @@
 // Strategy: network first, so a fresh version is used whenever the server can be reached; if it cannot (airplane
 // mode, no Wi-Fi, server off), the stored copy is used. A service worker only runs on https:// or http://localhost.
 
-const CACHE = 'marswalk-walk-v2';
+const CACHE = 'marswalk-walk-v3';
 const NETWORK_WAIT_MS = 3000; // after this, a stored copy is used instead of waiting for a slow network
 
 // The screen's own files and the shared modules it imports.
@@ -23,6 +23,7 @@ const SHELL = [
   'manifest.webmanifest',
   'icon-192.png',
   'icon-512.png',
+  'arrive.mp3',
   '../shared/data.js',
   '../shared/route.js',
   '../shared/walk-model.js',
