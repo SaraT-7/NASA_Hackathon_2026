@@ -68,9 +68,7 @@ function toInput(img) {
 }
 
 async function readMask(url) {
-  const img = new Image();
-  img.src = url;
-  await img.decode();
+  const img = await loadImage(url);
   const c = new OffscreenCanvas(SIZE, SIZE);
   const g = c.getContext('2d', { willReadFrequently: true });
   g.drawImage(img, 0, 0, SIZE, SIZE);
@@ -170,7 +168,7 @@ async function analyse(sample, button) {
     photo.getContext('2d').drawImage(img, 0, 0);
     overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
     setStatus('Looking for sand…');
-    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))); // let the photo appear first
+    await new Promise((r) => setTimeout(r, 30)); // let the photo appear first (no requestAnimationFrame: it pauses in hidden tabs)
     const t0 = performance.now();
     const out = await state.session.run({ image: toInput(img) });
     const ms = performance.now() - t0;
@@ -192,11 +190,14 @@ async function analyse(sample, button) {
   }
 }
 
-async function loadImage(url) {
-  const img = new Image();
-  img.src = url;
-  await img.decode();
-  return img;
+/** Load an image. Uses onload, not decode(): decode() waits for rendering, which stops in a hidden tab. */
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Could not load ${url}`));
+    img.src = url;
+  });
 }
 
 function thumb(listId, sample) {
