@@ -215,6 +215,36 @@ button.stop[aria-pressed="false"] .stop-name { font-weight: 400; }
   font-size: 12px;
 }
 
+/* Obstacles */
+
+.obstacle-btn {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.obstacle-btn:hover {
+  border-color: var(--accent);
+}
+
+.obstacle-btn[aria-pressed="true"] {
+  border-color: var(--danger);
+  background: rgba(255, 148, 136, 0.16);
+  color: var(--danger);
+}
+
+#map.is-reporting-obstacle,
+#map.is-reporting-obstacle .leaflet-interactive {
+  cursor: crosshair !important;
+}
+
 /* Map layers */
 
 .check {
