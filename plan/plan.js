@@ -7,7 +7,9 @@ import {
   xyToLatLng,
   latLngToXy,
   xyToCell,
+  cellCenter,
   cellIndex,
+  isPassable,
   RISK_IMPASSABLE,
   loadLayers,
   combineRisk,
@@ -22,6 +24,9 @@ const demoBadgeEl = document.getElementById('demo-badge');
 const habitatNameEl = document.getElementById('habitat-name');
 const stopsListEl = document.getElementById('stops-list');
 const clearStopsBtn = document.getElementById('clear-stops-btn');
+const customStopNameEl = document.getElementById('custom-stop-name');
+const addStopBtn = document.getElementById('add-stop-btn');
+const addStopHintEl = document.getElementById('add-stop-hint');
 const reportObstacleBtn = document.getElementById('report-obstacle-btn');
 const clearObstaclesBtn = document.getElementById('clear-obstacles-btn');
 const obstacleHintEl = document.getElementById('obstacle-hint');
@@ -73,6 +78,7 @@ const OBSTACLE_RADIUS_M = 16;
 
 let grid = null;
 let initialRiskCopy = null;
+let reachableMask = null;
 let dataLayers = [];
 let enabledLayerIds = [];
 const dataLayerOverlays = new Map();
@@ -84,6 +90,8 @@ let isReportingObstacle = false;
 
 let habitat = null;
 let allStops = [];
+let nextCustomStopId = 1;
+let isAddingStop = false;
 // Ordered array of selected stop IDs (selection order = visiting order)
 let selectedStopIds = [];
 
@@ -192,6 +200,187 @@ function stopIcon(order) {
   });
 }
 
+function addStopMarkerToMap(stop) {
+  if (!map) return;
+  const order = selectedStopIds.indexOf(stop.id);
+  const marker = L.marker(xyToLatLng(stop.x, stop.y), { icon: stopIcon(order), title: stop.name })
+    .addTo(map)
+    .bindTooltip(stop.description ? `${stop.name}: ${stop.description}` : stop.name);
+
+  marker.on('click', (ev) => {
+    L.DomEvent.stopPropagation(ev);
+    if (isReportingObstacle) {
+      addObstacleAtLatLng(marker.getLatLng());
+      return;
+    }
+    if (isAddingStop) {
+      addCustomStopAtLatLng(marker.getLatLng());
+      return;
+    }
+    toggleStop(stop.id);
+  });
+  stopMarkers.set(stop.id, marker);
+}
+
+/**
+ * 8-connected BFS from the Habitat to mark every grid cell that is reachable by foot.
+ * Because ~32% of Mount Sharp boxwork cells have slope >= 20° (impassable) and ~18% sit inside
+ * enclosed ridge hollows, snapping a map click to the nearest reachable cell guarantees that
+ * clicking any random Boxwork ridge on the map places a stop at its nearest passable edge.
+ */
+function updateReachableMask() {
+  if (!grid || !habitat) return;
+  const n = grid.cols * grid.rows;
+  const mask = new Uint8Array(n);
+  const startCell = xyToCell(grid, habitat.x, habitat.y);
+  if (!startCell) {
+    reachableMask = mask;
+    return;
+  }
+  const startIdx = cellIndex(grid, startCell.col, startCell.row);
+  const queue = new Int32Array(n);
+  let head = 0;
+  let tail = 0;
+  queue[tail++] = startIdx;
+  mask[startIdx] = 1;
+
+  const cols = grid.cols;
+  const rows = grid.rows;
+  while (head < tail) {
+    const cur = queue[head++];
+    const r = (cur / cols) | 0;
+    const c = cur % cols;
+    for (let dr = -1; dr <= 1; dr++) {
+      const nr = r + dr;
+      if (nr < 0 || nr >= rows) continue;
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nc = c + dc;
+        if (nc < 0 || nc >= cols) continue;
+        const ni = nr * cols + nc;
+        if (!mask[ni] && grid.risk[ni] !== RISK_IMPASSABLE) {
+          mask[ni] = 1;
+          queue[tail++] = ni;
+        }
+      }
+    }
+  }
+  reachableMask = mask;
+}
+
+/**
+ * Given any (x, y) click on the map, return the exact point if its cell is reachable from the Habitat,
+ * or snap to the closest cell reachable from the Habitat.
+ */
+function snapToReachablePoint(x, y) {
+  const clampedX = Math.max(0.1, Math.min(grid.widthM - 0.1, x));
+  const clampedY = Math.max(0.1, Math.min(grid.heightM - 0.1, y));
+  const cell = xyToCell(grid, clampedX, clampedY);
+  if (!cell) return null;
+
+  if (!reachableMask) updateReachableMask();
+  const idx = cellIndex(grid, cell.col, cell.row);
+  if (reachableMask ? reachableMask[idx] : isPassable(grid, idx)) {
+    return { x: clampedX, y: clampedY, snapped: false };
+  }
+
+  const maxRadius = Math.max(grid.cols, grid.rows);
+  let bestCol = -1;
+  let bestRow = -1;
+  let bestDist2 = Infinity;
+
+  for (let rad = 1; rad <= maxRadius; rad++) {
+    const rMin = Math.max(0, cell.row - rad);
+    const rMax = Math.min(grid.rows - 1, cell.row + rad);
+    const cMin = Math.max(0, cell.col - rad);
+    const cMax = Math.min(grid.cols - 1, cell.col + rad);
+
+    for (let r = rMin; r <= rMax; r++) {
+      for (let c = cMin; c <= cMax; c++) {
+        if (r !== rMin && r !== rMax && c !== cMin && c !== cMax) continue;
+        const ni = r * grid.cols + c;
+        if (reachableMask ? reachableMask[ni] : isPassable(grid, ni)) {
+          const d2 = (r - cell.row) ** 2 + (c - cell.col) ** 2;
+          if (d2 < bestDist2) {
+            bestDist2 = d2;
+            bestCol = c;
+            bestRow = r;
+          }
+        }
+      }
+    }
+    if (bestCol >= 0) break;
+  }
+
+  if (bestCol < 0) return null;
+  const center = cellCenter(grid, bestCol, bestRow);
+  return { x: center.x, y: center.y, snapped: true };
+}
+
+function setAddingStop(active) {
+  isAddingStop = Boolean(active);
+  if (isAddingStop && isReportingObstacle) {
+    setReportingObstacle(false);
+  }
+  addStopBtn.setAttribute('aria-pressed', String(isAddingStop));
+  addStopBtn.textContent = isAddingStop ? 'Click map to place (Cancel)' : '+ Add Boxwork stop on map';
+  addStopHintEl.classList.remove('is-error');
+  addStopHintEl.textContent = isAddingStop
+    ? 'Click anywhere on the map to place the new Boxwork stop.'
+    : 'Tip: Click any spot on the map to add a new Boxwork target.';
+  map2dEl.classList.toggle('is-adding-stop', isAddingStop);
+  if (isAddingStop && viewMode === '3d') {
+    setViewMode('2d');
+  }
+}
+
+function addCustomStopAtLatLng(latlng) {
+  const { x, y } = latLngToXy(latlng);
+  const target = snapToReachablePoint(x, y);
+  if (!target) return;
+
+  const num = nextCustomStopId++;
+  const rawName = customStopNameEl ? customStopNameEl.value.trim() : '';
+  const name = rawName || `Custom Boxwork site ${num}`;
+  if (customStopNameEl) customStopNameEl.value = '';
+
+  const rx = Math.round(target.x * 10) / 10;
+  const ry = Math.round(target.y * 10) / 10;
+  const newStop = {
+    id: `custom_bw_${num}`,
+    name,
+    type: 'science',
+    x: rx,
+    y: ry,
+    description: target.snapped
+      ? `Astronaut-selected Boxwork site, snapped to nearest passable edge (${Math.round(rx)} m E, ${Math.round(ry)} m N).`
+      : `Astronaut-selected Boxwork site (${Math.round(rx)} m E, ${Math.round(ry)} m N).`,
+    photo: null,
+    custom: true,
+  };
+
+  allStops.push(newStop);
+  selectedStopIds.push(newStop.id);
+  addStopMarkerToMap(newStop);
+  if (terrain3d) terrain3d.setStops(allStops);
+  setAddingStop(false);
+  renderStopsUI();
+  recomputeRoutes();
+}
+
+function removeCustomStop(stopId) {
+  allStops = allStops.filter((s) => s.id !== stopId);
+  selectedStopIds = selectedStopIds.filter((id) => id !== stopId);
+  const marker = stopMarkers.get(stopId);
+  if (marker) {
+    marker.remove();
+    stopMarkers.delete(stopId);
+  }
+  if (terrain3d) terrain3d.setStops(allStops);
+  renderStopsUI();
+  recomputeRoutes();
+}
+
 function renderStopsUI() {
   // The list is rebuilt on every change; keep keyboard focus on the stop that was just toggled.
   const focusedId = document.activeElement && document.activeElement.dataset
@@ -216,8 +405,19 @@ function renderStopsUI() {
     row.append(marker, text);
     row.addEventListener('click', () => toggleStop(stop.id));
 
-    const item = h('li');
+    const item = h('li', stop.custom ? 'stop-item' : '');
     item.appendChild(row);
+    if (stop.custom) {
+      const delBtn = h('button', 'stop-remove', '×');
+      delBtn.type = 'button';
+      delBtn.title = `Remove ${stop.name}`;
+      delBtn.setAttribute('aria-label', `Remove ${stop.name}`);
+      delBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        removeCustomStop(stop.id);
+      });
+      item.appendChild(delBtn);
+    }
     stopsListEl.appendChild(item);
     if (focusedId === stop.id) row.focus();
 
@@ -250,6 +450,7 @@ function rebuildRiskGrid() {
     }
   }
   grid.risk = combined;
+  if (habitat) updateReachableMask();
 }
 
 /**
@@ -285,6 +486,9 @@ function computeObstacleCells(x, y, radiusM = OBSTACLE_RADIUS_M) {
 
 function setReportingObstacle(active) {
   isReportingObstacle = Boolean(active);
+  if (isReportingObstacle && isAddingStop) {
+    setAddingStop(false);
+  }
   reportObstacleBtn.setAttribute('aria-pressed', String(isReportingObstacle));
   reportObstacleBtn.textContent = isReportingObstacle
     ? 'Click map to place (Cancel)'
@@ -522,6 +726,11 @@ function drawRouteLines() {
         if (isReportingObstacle) {
           L.DomEvent.stopPropagation(ev);
           addObstacleAtLatLng(ev.latlng);
+          return;
+        }
+        if (isAddingStop) {
+          L.DomEvent.stopPropagation(ev);
+          addCustomStopAtLatLng(ev.latlng);
           return;
         }
         selectRouteKind(kind);
@@ -1105,8 +1314,16 @@ async function main() {
   obstacleLayerGroup = L.layerGroup().addTo(map);
 
   map.on('click', (ev) => {
-    if (!isReportingObstacle) return;
-    addObstacleAtLatLng(ev.latlng);
+    if (isReportingObstacle) {
+      addObstacleAtLatLng(ev.latlng);
+      return;
+    }
+    // Clicking anywhere on the map adds a new Boxwork stop at that point (both via button or direct map click)
+    addCustomStopAtLatLng(ev.latlng);
+  });
+
+  addStopBtn.addEventListener('click', () => {
+    setAddingStop(!isAddingStop);
   });
 
   reportObstacleBtn.addEventListener('click', () => {
@@ -1118,8 +1335,9 @@ async function main() {
   });
 
   window.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && isReportingObstacle) {
-      setReportingObstacle(false);
+    if (ev.key === 'Escape') {
+      if (isReportingObstacle) setReportingObstacle(false);
+      if (isAddingStop) setAddingStop(false);
     }
   });
 
@@ -1129,6 +1347,7 @@ async function main() {
   ]);
   habitat = stopsData.habitat;
   allStops = stopsData.stops;
+  updateReachableMask();
 
   renderConditionsAndLimits(conditionsData);
 
@@ -1145,18 +1364,7 @@ async function main() {
     .bindTooltip(`${habitat.name}: start and return point`);
 
   for (const stop of allStops) {
-    const marker = L.marker(xyToLatLng(stop.x, stop.y), { icon: stopIcon(-1), title: stop.name })
-      .addTo(map)
-      .bindTooltip(stop.description ? `${stop.name}: ${stop.description}` : stop.name);
-
-    marker.on('click', () => {
-      if (isReportingObstacle) {
-        addObstacleAtLatLng(marker.getLatLng());
-        return;
-      }
-      toggleStop(stop.id);
-    });
-    stopMarkers.set(stop.id, marker);
+    addStopMarkerToMap(stop);
   }
 
   // Initialize 3D terrain viewer (pure WebGL, shares the same grid, overlays, stops and routes)

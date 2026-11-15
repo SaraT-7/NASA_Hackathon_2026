@@ -475,18 +475,25 @@ export function createTerrain3D({
   habitatPin.title = `${habitat.name}: start and return point`;
   markersLayer.appendChild(habitatPin);
 
+  let stopList = stops.slice();
   const stopPins = new Map();
-  for (const s of stops) {
-    const pin = document.createElement('button');
-    pin.type = 'button';
-    pin.className = 'pin3d pin3d-stop';
-    pin.title = s.description ? `${s.name}: ${s.description}` : s.name;
-    pin.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      onToggleStop(s.id);
-    });
-    markersLayer.appendChild(pin);
-    stopPins.set(s.id, pin);
+
+  function rebuildStopPins() {
+    for (const pin of stopPins.values()) pin.remove();
+    stopPins.clear();
+    for (const s of stopList) {
+      const pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'pin3d pin3d-stop';
+      pin.title = s.description ? `${s.name}: ${s.description}` : s.name;
+      pin.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        onToggleStop(s.id);
+      });
+      markersLayer.appendChild(pin);
+      stopPins.set(s.id, pin);
+    }
+    updateStopPinStyles();
   }
 
   const hoverPin = document.createElement('div');
@@ -495,7 +502,7 @@ export function createTerrain3D({
   markersLayer.appendChild(hoverPin);
 
   function updateStopPinStyles() {
-    for (const s of stops) {
+    for (const s of stopList) {
       const pin = stopPins.get(s.id);
       if (!pin) continue;
       const order = selectedIds.indexOf(s.id);
@@ -504,6 +511,8 @@ export function createTerrain3D({
       pin.textContent = selected ? String(order + 1) : '';
     }
   }
+
+  rebuildStopPins();
 
   function updatePinPositions(mvp, cssW, cssH) {
     const place = (el, x, y, elev, liftM = 8) => {
@@ -520,7 +529,7 @@ export function createTerrain3D({
     };
 
     place(habitatPin, habitat.x, habitat.y, sampleElev(habitat.x, habitat.y), 10);
-    for (const s of stops) {
+    for (const s of stopList) {
       const pin = stopPins.get(s.id);
       if (pin) place(pin, s.x, s.y, sampleElev(s.x, s.y), 10);
     }
@@ -768,6 +777,11 @@ export function createTerrain3D({
       requestRender();
     },
     resetCamera,
+    setStops(newStops) {
+      stopList = newStops.slice();
+      rebuildStopPins();
+      requestRender();
+    },
     setSelectedStops(ids) {
       selectedIds = ids.slice();
       updateStopPinStyles();
