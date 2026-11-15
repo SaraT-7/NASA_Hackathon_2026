@@ -5,6 +5,12 @@
   <meta charset="utf-8">
   <link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#261d18">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MarsWalk">
   <title>MarsWalk · Wrist display</title>
   <link rel="stylesheet" href="../shared/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="walk.css">
@@ -19,8 +25,9 @@
   </header>
   <main>
     <div id="stage" class="stage" aria-label="Map: route, stops and simulated position, turned to the walking direction">
-      <div id="speed" class="speed" role="group" aria-label="Demo control: simulation speed">
-        <span class="speed-label">demo control</span>
+      <div id="speed" class="speed" aria-label="Demo controls: they change the simulation, not the astronaut's data">
+        <div id="speed-row" class="speed-row" role="group" aria-label="Demo control: simulation speed"><span class="speed-label">demo speed</span></div>
+        <div id="pace-row" class="speed-row" role="group" aria-label="Demo control: simulated walker's pace compared with the plan"><span class="speed-label">demo pace</span></div>
       </div>
       <section id="stop-card" class="stop-card" hidden>
         <div class="stop-top">
@@ -47,7 +54,7 @@
     </section>
     <div class="pair">
       <section class="tile"><h2>Elapsed</h2><p id="elapsed">…</p></section>
-      <section class="tile"><h2 id="limit-label">Turn back in</h2><p id="limit">…</p></section>
+      <section class="tile"><h2 id="limit-label">Turn back in</h2><p id="limit">…</p><p id="pace-note" class="sub">planned pace</p></section>
     </div>
     <section class="tile oxygen" aria-label="Estimated oxygen">
       <div class="oxygen-head"><h2>Oxygen <span class="est">(estimated)</span></h2><p id="o2-left" class="o2-left">100 %</p></div>

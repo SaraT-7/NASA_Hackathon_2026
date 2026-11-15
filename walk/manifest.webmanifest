@@ -1,0 +1,15 @@
+{
+  "name": "MarsWalk · Wrist display",
+  "short_name": "MarsWalk",
+  "description": "Walk guide for an EVA on Mount Sharp, Gale Crater. Position is simulated.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#120e0c",
+  "theme_color": "#261d18",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

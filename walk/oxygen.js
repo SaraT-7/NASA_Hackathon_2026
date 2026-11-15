@@ -6,6 +6,7 @@
 import { returnTimeS } from '../shared/route.js';
 import { ASSUMPTIONS } from '../shared/walk-model.js';
 import { PHASE } from './state.js';
+import { slowdownOf } from './status.js';
 
 /** Seconds of suit budget as a percentage of the whole budget. */
 export function budgetPct(seconds) {
@@ -21,6 +22,6 @@ export function oxygenGauge(route, snapshot) {
   let homeS;
   if (snapshot.phase === PHASE.DONE) homeS = 0;
   else if (snapshot.phase === PHASE.RETURNING) homeS = snapshot.habitatInS || 0;
-  else homeS = returnTimeS(route, snapshot.pointIndex);
+  else homeS = returnTimeS(route, snapshot.pointIndex) * slowdownOf(snapshot);
   return { leftPct: budgetPct(leftS), homePct: budgetPct(homeS) };
 }

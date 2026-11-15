@@ -14,6 +14,9 @@ export const PHASE = Object.freeze({
 });
 
 const EPS = 1e-6;
+
+/** The walker's pace is judged only after this much planned walking, so the first steps do not swing the estimate. */
+export const PACE_MIN_PLANNED_S = 120;
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const lerp = (a, b, f) => a + (b - a) * f;
 
@@ -43,7 +46,30 @@ export function createWalk(route) {
   let seg = 0; // route point at or behind the position, counted from the habitat
   let frac = 0; // 0..1 of the way from point seg to point seg + 1
   let outS = 0; // outbound clock, in the same seconds as route.points[].time
-  let backLeftS = 0; // while returning: seconds left to the habitat
+  let backLeftS = 0; // while returning: planned seconds left to the habitat (return safety margin included)
+  let walkedOutS = 0; // real seconds spent walking out, stops not counted: compared with outS to judge the pace
+  let backDoneS = 0; // planned return seconds already walked (return safety margin included)
+  let walkedBackS = 0; // real seconds spent walking back: compared with backDoneS
+  let simPace = 1; // demo only: how fast the simulated walker moves compared with the plan (1 = as planned)
+
+  /**
+   * Real walking seconds per planned second, measured on the way out and, once returning, on the way back too.
+   * The slower of the two is used, so slowing down on the way home is noticed at once. Stops are not counted.
+   * null until enough walking has been seen for the first steps not to swing it.
+   */
+  function paceRatio() {
+    const out = outS >= PACE_MIN_PLANNED_S ? walkedOutS / outS : null;
+    const back = backDoneS >= PACE_MIN_PLANNED_S ? walkedBackS / backDoneS : null;
+    if (out == null) return back;
+    return back == null ? out : Math.max(out, back);
+  }
+
+  /** How much longer the walking still to do will take than planned. Never below 1: a faster walker keeps the
+   * planned times, a slower one gets less time. */
+  function slowdown() {
+    const ratio = paceRatio();
+    return ratio == null ? 1 : Math.max(1, ratio);
+  }
 
   /** Value of a per-point quantity at the current position. */
   function here(valueAt) {
@@ -103,18 +129,23 @@ export function createWalk(route) {
     else beginReturn(); // a route without stops: walk to its end, then come back
   }
 
+  // dtS is real time. The simulated walker covers dtS x simPace seconds of the plan in it.
   function advanceOut(dtS) {
-    const used = Math.min(dtS, Math.max(0, points[targetIndex()].time - outS));
-    outS += used;
-    elapsedS += used;
+    const planned = Math.min(dtS * simPace, Math.max(0, points[targetIndex()].time - outS));
+    const real = planned / simPace;
+    outS += planned;
+    walkedOutS += real;
+    elapsedS += real;
     moveToOutboundTime(outS);
     arriveIfThere();
   }
 
   function advanceBack(dtS) {
-    const used = Math.min(dtS, backLeftS);
-    backLeftS -= used;
-    elapsedS += used;
+    const planned = Math.min(dtS * simPace, backLeftS);
+    backLeftS -= planned;
+    backDoneS += planned;
+    walkedBackS += planned / simPace;
+    elapsedS += planned / simPace;
     if (backLeftS <= EPS) finish();
     else moveToReturnTime(backLeftS);
   }
@@ -155,6 +186,13 @@ export function createWalk(route) {
       else if (phase === PHASE.RETURNING) advanceBack(dtS);
     },
 
+    /** Demo control: the simulated walker's pace compared with the plan (1 = as planned, 0.5 = half as fast). */
+    setSimPace(pace) {
+      if (!(pace > 0)) return false;
+      simPace = pace;
+      return true;
+    },
+
     /** "Done here": adds the work time for this stop, then walks on, or starts the return after the last stop. */
     doneHere() {
       if (phase !== PHASE.AT_STOP) return false;
@@ -193,7 +231,12 @@ export function createWalk(route) {
         y: here((i) => points[i].y),
         // Along the path: to the next stop on the way out, to the habitat on the way back.
         distanceToNextM: headingHome ? distHereM : Math.max(0, points[targetIndex()].dist - distHereM),
-        habitatInS: phase === PHASE.RETURNING ? backLeftS : null,
+        // Planned return time stretched by the measured pace (way out, and way back once returning).
+        habitatInS: phase === PHASE.RETURNING ? backLeftS * slowdown() : null,
+        // Real walking seconds per planned second so far (1 until enough walking has been seen, never below 1).
+        // Every time still to walk is multiplied by it: turn-back moment, oxygen line, stop check, time home.
+        slowdown: slowdown(),
+        pacePct: paceRatio() ? 100 / paceRatio() : null,
         stopsDone: Math.min(stopCursor, stops.length),
         stopsTotal: stops.length,
       };
