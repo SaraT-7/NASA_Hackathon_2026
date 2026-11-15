@@ -12,7 +12,7 @@ Claude'u da) işe başlamadan önce bu dosyayı okur.
 
 | İş kolu | Branch | Sahibi olduğu yollar |
 | --- | --- | --- |
-| A · Veri | `feature/data` | `pipeline/**`, `app_data/**`, `requirements.txt`, `data/**` |
+| A · Veri | `feature/data`, `feature/camera` | `pipeline/**`, `app_data/**`, `requirements.txt`, `data/**`, `camera/**` (kask kamerası demosu, deneysel) |
 | B · Planlama ekranı | `feature/plan` | `plan/**` |
 | C · Yürüyüş ekranı | `feature/walk` | `walk/**`; pazar 12:00'den sonra `README.md` |
 | Donmuş (kimse tek başına değiştirmez) | — | `shared/**`, `tools/**`, `index.html`, `docs/CONTRACT.md`, `docs/tasks/**`, `CLAUDE.md`, `.gitignore`, `.nojekyll` |
