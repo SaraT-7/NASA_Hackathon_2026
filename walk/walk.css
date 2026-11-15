@@ -215,7 +215,7 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; pa
   .tag { padding: 3px 3px; font-size: 8px; letter-spacing: 0; }
   .tag-demo { padding: 2px 3px; }
 }
-@media (max-height: 800px) {
+@media (max-height: 800px) and (max-width: 519px) {
   main { padding: 0 10px 8px; }
   .stage { min-height: 110px; margin: 0 -10px; }
   .status { min-height: 34px; margin: 0 -10px; padding: 3px 10px; font-size: 16px; }
@@ -237,4 +237,15 @@ main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; pa
   .return-info h2 { font-size: 17px; }
   .return-info p { font-size: 14px; }
   body[data-phase="at_stop"] .tile-next { display: none; }
+}
+
+/* Wide screens (laptop, projector): the wrist display keeps a phone's size and layout (402 x 874, an iPhone 17 Pro)
+   and is shown as a panel in the middle instead of being stretched across the window. walk.js scales the panel
+   (--frame-zoom) so it always fits the window height, from a small projector to a large monitor. Phones are not affected. */
+@media (min-width: 520px) {
+  html { display: flex; align-items: center; justify-content: center; background: #050607; }
+  body {
+    flex: none; width: 402px; height: 874px; zoom: var(--frame-zoom, 1);
+    border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
 }
