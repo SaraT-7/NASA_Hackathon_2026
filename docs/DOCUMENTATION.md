@@ -154,6 +154,11 @@ The walk screen reads it with `loadRoute()`; if there is none, it opens the demo
   walks on; "Turn back" starts the return from anywhere; the position is simulated and labelled.
 - **Turn back in** = 6 h − elapsed − time to walk back from here. Status strip: GO (more than 30 min left),
   TURN BACK SOON (0–30 min), TURN BACK NOW; returning and done have their own colours. Colour and word change together.
+- **Path home:** when the walk heads home (Turn back, or after the last stop), the planner's A* plans a direct path
+  from the current cell to the habitat on the same risk map, with the route's own risk weight. It is used only if it
+  saves at least 1 min of planned time (drawn in blue, with the time saved); otherwise the astronaut walks back the
+  same path. Example: stops visited 2 → 1 → 3, Turn back at 1: 63 min back the same way, 7.5 min direct. *Turn back
+  in* still counts the same-path time, an upper bound, so it never promises less time than the walk home needs.
 - **Measured pace:** after two minutes of planned walking, real walking time is compared with the plan; a slower
   walker gets a longer return estimate and an earlier turn-back time.
 - **Oxygen (estimated):** no sensor; the 6 h suit budget shown as a percentage, with a mark for what the walk back
