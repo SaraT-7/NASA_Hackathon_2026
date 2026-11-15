@@ -6,7 +6,7 @@
 // Strategy: network first, so a fresh version is used whenever the server can be reached; if it cannot (airplane
 // mode, no Wi-Fi, server off), the stored copy is used. A service worker only runs on https:// or http://localhost.
 
-const CACHE = 'marswalk-walk-v1';
+const CACHE = 'marswalk-walk-v2';
 const NETWORK_WAIT_MS = 3000; // after this, a stored copy is used instead of waiting for a slow network
 
 // The screen's own files and the shared modules it imports.
@@ -75,7 +75,9 @@ async function fromCache(request) {
 }
 
 async function networkFirst(request) {
-  const network = fetch(request).then(async (response) => {
+  // 'no-cache': always ask the server whether a file changed, so an old copy kept by the browser can never be
+  // mixed with new files (one old module next to new ones stops the whole page).
+  const network = fetch(request, { cache: 'no-cache' }).then(async (response) => {
     if (response.ok && response.type === 'basic') {
       const cache = await caches.open(CACHE);
       await cache.put(request, response.clone());
