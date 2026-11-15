@@ -6,7 +6,7 @@
 // Strategy: network first, so a fresh version is used whenever the server can be reached; if it cannot (airplane
 // mode, no Wi-Fi, server off), the stored copy is used. A service worker only runs on https:// or http://localhost.
 
-const CACHE = 'marswalk-walk-v3';
+const CACHE = 'marswalk-walk-v4';
 const NETWORK_WAIT_MS = 3000; // after this, a stored copy is used instead of waiting for a slow network
 
 // The screen's own files and the shared modules it imports.
@@ -23,7 +23,6 @@ const SHELL = [
   'manifest.webmanifest',
   'icon-192.png',
   'icon-512.png',
-  'arrive.mp3',
   '../shared/data.js',
   '../shared/route.js',
   '../shared/walk-model.js',
@@ -51,10 +50,9 @@ async function dataFiles() {
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await cache.addAll(SHELL.map(url));
-    // A missing photo or data file must not stop the rest from being stored.
+    // Each file is stored on its own: one missing file (a photo, the sound) must not stop the rest from being stored.
     const files = await dataFiles().catch(() => []);
-    await Promise.allSettled(files.map((file) => cache.add(file)));
+    await Promise.allSettled([...SHELL.map(url), ...files].map((file) => cache.add(file)));
     await self.skipWaiting();
   })());
 });
