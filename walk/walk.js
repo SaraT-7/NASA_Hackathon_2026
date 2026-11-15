@@ -248,6 +248,19 @@ function buildSpeedControl() {
   showChip();
 }
 
+/** Size of the wide-screen panel (walk.css, min-width 520 px): scaled to fit the window, never wider than it. */
+const FRAME_W = 402;
+const FRAME_H = 874;
+const FRAME_MAX_ZOOM = 1.2;
+
+function fitFrame() {
+  const wide = window.matchMedia('(min-width: 520px)').matches;
+  const zoom = wide ? Math.min(FRAME_MAX_ZOOM, (window.innerHeight - 24) / FRAME_H, (window.innerWidth - 24) / FRAME_W) : 1;
+  document.documentElement.style.setProperty('--frame-zoom', zoom.toFixed(3));
+}
+fitFrame();
+window.addEventListener('resize', fitFrame);
+
 async function main() {
   route = loadRoute();
   let demo = false;
