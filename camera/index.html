@@ -74,7 +74,8 @@
         <summary>Limits</summary>
         <p>Experimental: not used in route planning. Trained on Curiosity Navcam images only; other cameras, colour
           photos, the sky and ground beyond about 30 m are not reliable, so by default only the lower half of the photo
-          (the near field) is shown and counted. It does not detect rocks: the training data has too few labelled rocks.</p>
+          (the near field) is shown and counted. Parts of the rover (arm, deck, wheels) were left out of the training labels, so the model often
+          mistakes them for sand. It does not detect rocks: the training data has too few labelled rocks.</p>
       </details>
     </aside>
   </main>

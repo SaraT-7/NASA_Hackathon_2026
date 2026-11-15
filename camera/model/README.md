@@ -26,4 +26,5 @@ Big rock is weak (IoU 0.10 on test_min1): too few labelled rocks in the training
 ## Limits
 
 Trained on Curiosity Navcam only: other cameras and colour photos are less reliable. Sky and ground beyond ~30 m
-were never labelled, so the page shows and counts only the lower half of the photo by default.
+were never labelled, so the page shows and counts only the lower half of the photo by default. Rover hardware (arm,
+deck, wheels) was masked out of the training labels, so the model often calls it sand.
