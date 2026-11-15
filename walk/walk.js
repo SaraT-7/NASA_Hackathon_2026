@@ -1,13 +1,14 @@
 // walk/walk.js — the walk screen, for work stream C. It only draws what walk/state.js and walk/status.js report.
 // See docs/tasks/C_WALK.md for the order of work.
-import { loadRoute, loadMockRoute } from '../shared/route.js';
+import { loadRoute, loadMockRoute, buildRoute } from '../shared/route.js';
 import { ASSUMPTIONS, formatDuration } from '../shared/walk-model.js';
 import { createWalk, PHASE } from './state.js';
 import { readout } from './status.js';
 import { nextStopCheck } from './check.js';
 import { oxygenGauge, budgetPct } from './oxygen.js';
 import { loadGridMeta, createWalkMap } from './map.js';
-import { loadJson } from '../shared/data.js';
+import { loadJson, loadGrid, xyToCell, cellIndex } from '../shared/data.js';
+import { findPath } from '../plan/astar.js';
 
 /** Longest step of real time one frame may add, so a stalled tab cannot jump the walk forward. */
 const MAX_FRAME_S = 0.25;
@@ -21,6 +22,12 @@ const DEMO_PACES = [1, 0.6, 0.3];
 const RETURN_MARGIN_PCT = Math.round((ASSUMPTIONS.RETURN_FACTOR - 1) * 100);
 const RETURN_NOTE = `Same path, walked back. Planned time includes a ${RETURN_MARGIN_PCT}\u00a0% safety margin.`;
 
+/** Under "Returning to the habitat": which path home, and why. */
+function returnNote(s) {
+  if (s.returnPath !== 'direct') return RETURN_NOTE;
+  return `Direct path, ${formatDuration(s.returnSavedS)} shorter than the way you came. Planned on the risk map; includes a ${RETURN_MARGIN_PCT}\u00a0% safety margin.`;
+}
+
 const el = (id) => document.getElementById(id);
 
 let route = null;
@@ -32,6 +39,26 @@ let shownStopId = null;
 let speed = DEMO_SPEEDS[0];
 let pace = DEMO_PACES[0];
 let lastFrameMs = null;
+let fullGrid = null; // risk, slope and elevation rasters for planning a direct path home; null until loaded
+
+/**
+ * Direct path home from (x, y): the planner's A* on the same risk map, with the route's own risk weight, built into
+ * route points with the shared buildRoute() (habitat first). null when the grid is not loaded or there is no path;
+ * the walk then goes back the way it came.
+ */
+function planDirectReturn(x, y) {
+  if (!fullGrid) return null;
+  const home = route.points[0];
+  const from = xyToCell(fullGrid, home.x, home.y);
+  const to = xyToCell(fullGrid, x, y);
+  if (!from || !to) return null;
+  const weight = Number.isFinite(route.weight) ? route.weight : 0;
+  const cells = findPath(fullGrid, cellIndex(fullGrid, from.col, from.row), cellIndex(fullGrid, to.col, to.row), weight);
+  if (!cells || cells.length < 2) return null;
+  return buildRoute(fullGrid, cells, { name: 'Direct path home', kind: route.kind, weight }).points;
+}
+
+const newWalk = () => createWalk(route, { planReturn: planDirectReturn });
 
 function setText(node, text) {
   if (node.textContent !== text) node.textContent = text;
@@ -89,7 +116,7 @@ function drawControls(s) {
 
   el('return-info').hidden = !headingHome;
   setText(el('return-title'), s.phase === PHASE.DONE ? 'Back at the habitat' : 'Returning to the habitat');
-  setText(el('return-note'), s.phase === PHASE.DONE ? 'Marswalk complete.' : RETURN_NOTE);
+  setText(el('return-note'), s.phase === PHASE.DONE ? 'Marswalk complete.' : returnNote(s));
 }
 
 /** Whole percent for display; never shows 0 % while some budget is left. */
@@ -188,7 +215,7 @@ function bindControls() {
     const s = walk.snapshot();
     if (s.phase === PHASE.READY) walk.start();
     else if (s.phase === PHASE.DONE) { // "New walk": back to the start, same route, same demo pace
-      walk = createWalk(route);
+      walk = newWalk();
       walk.setSimPace(pace);
     }
     else if (s.running) walk.pause();
@@ -270,8 +297,15 @@ async function main() {
   }
   el('badge').textContent = demo ? 'DEMO ROUTE' : route.mock ? 'DEMO TERRAIN' : '';
 
-  walk = createWalk(route);
+  walk = newWalk();
   walk.setSimPace(pace);
+  // In the background: the rasters for a direct path home (a few MB, kept offline by sw.js). Until they arrive, or
+  // if they cannot be read, Turn back walks the same path back.
+  loadGrid('../app_data/')
+    .then((grid) => {
+      if (!route.grid_name || route.grid_name === grid.meta.name) fullGrid = grid;
+    })
+    .catch((err) => console.warn('Direct path home not available:', err.message));
   try {
     const grid = await loadGridMeta('../app_data/');
     photoBase = grid.base;

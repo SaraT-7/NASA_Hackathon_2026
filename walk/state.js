@@ -15,6 +15,9 @@ export const PHASE = Object.freeze({
 
 const EPS = 1e-6;
 
+/** A direct path home replaces the way back only when it saves at least this much planned time. */
+export const DIRECT_MIN_GAIN_S = 60;
+
 /** The walker's pace is judged only after this much planned walking, so the first steps do not swing the estimate. */
 export const PACE_MIN_PLANNED_S = 120;
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -23,21 +26,34 @@ const lerp = (a, b, f) => a + (b - a) * f;
 /**
  * Start a walk along a route object (docs/CONTRACT.md, section 4).
  * @param {Route} route  from loadRoute() or loadMockRoute()
+ * @param {object} [opts]
+ * @param {(x: number, y: number) => object[]|null} [opts.planReturn]  route points of a direct path from the habitat
+ *   to (x, y), or null. When the walk heads home (Turn back, or after the last stop) and walking this path backwards
+ *   takes less time than the way the astronaut came, it is used instead. Without it, or if it is not shorter, the
+ *   astronaut walks back along the same path.
  */
-export function createWalk(route) {
+export function createWalk(route, opts = {}) {
   if (!route || !Array.isArray(route.points) || route.points.length < 2) {
     throw new Error('The route has no path to walk');
   }
-  const points = route.points;
-  const last = points.length - 1;
+  // The path being walked: route.points, until a shorter direct path home replaces it on the way back.
+  let points = route.points;
+  let last = points.length - 1;
   const stops = Array.isArray(route.stops) ? route.stops : [];
+  const planReturn = typeof opts.planReturn === 'function' ? opts.planReturn : null;
 
-  // Seconds needed to walk back to the habitat from each route point, return safety margin included.
-  // Built one leg at a time with the shared returnTimeS(), so backS[i] equals returnTimeS(route, i).
-  const backS = new Float64Array(points.length);
-  for (let i = 1; i <= last; i++) {
-    backS[i] = backS[i - 1] + returnTimeS({ points: [points[i - 1], points[i]] }, 1);
+  /**
+   * Seconds needed to walk back to the start of a path (the habitat) from each of its points, return safety margin
+   * included. Built one leg at a time with the shared returnTimeS(), so t[i] equals returnTimeS({ points }, i).
+   */
+  function returnTimes(pts) {
+    const t = new Float64Array(pts.length);
+    for (let i = 1; i < pts.length; i++) t[i] = t[i - 1] + returnTimeS({ points: [pts[i - 1], pts[i]] }, 1);
+    return t;
   }
+  let backS = returnTimes(points);
+  let directReturn = false; // true once the walk home follows a direct path instead of the way out
+  let returnSavedS = 0; // planned seconds the direct path saves (return safety margin included)
 
   let phase = PHASE.READY;
   let running = false; // false = paused; pausing is not a phase, it only stops the clock
@@ -110,9 +126,35 @@ export function createWalk(route) {
     running = false;
   }
 
+  /**
+   * Heading home: ask for a direct path from here to the habitat and take it only if it is shorter in planned time
+   * than walking back the way the astronaut came. The way back stays the fallback (no path, no grid, not shorter).
+   */
+  function tryDirectReturn() {
+    if (!planReturn || backLeftS <= DIRECT_MIN_GAIN_S) return;
+    let path = null;
+    try {
+      path = planReturn(here((i) => points[i].x), here((i) => points[i].y));
+    } catch (err) {
+      path = null;
+    }
+    if (!Array.isArray(path) || path.length < 2) return;
+    const times = returnTimes(path);
+    const directS = times[path.length - 1];
+    if (!(directS < backLeftS - DIRECT_MIN_GAIN_S)) return;
+    returnSavedS = backLeftS - directS;
+    points = path;
+    last = path.length - 1;
+    backS = times;
+    placeAtPoint(last); // the path ends in the cell the astronaut is in
+    backLeftS = directS;
+    directReturn = true;
+  }
+
   function beginReturn() {
     phase = PHASE.RETURNING;
     backLeftS = here((i) => backS[i]);
+    tryDirectReturn();
     if (backLeftS <= EPS) finish();
   }
 
@@ -207,7 +249,7 @@ export function createWalk(route) {
       return true;
     },
 
-    /** "Turn back": from the walk or from a stop, return to the habitat along the same path. */
+    /** "Turn back": from the walk or from a stop, return to the habitat (direct path if shorter, else the same path). */
     turnBack() {
       if (phase !== PHASE.WALKING && phase !== PHASE.AT_STOP) return false;
       running = true;
@@ -219,13 +261,21 @@ export function createWalk(route) {
     snapshot() {
       const headingHome = phase === PHASE.RETURNING || phase === PHASE.DONE;
       const distHereM = here((i) => points[i].dist);
+      const index = frac > EPS ? seg + 1 : seg;
       return {
         phase,
         running,
         elapsedS,
         // The route point at or just beyond the position, so returnTimeS(route, pointIndex) never
-        // promises a shorter walk home than the real one.
-        pointIndex: frac > EPS ? seg + 1 : seg,
+        // promises a shorter walk home than the real one. On a direct path home it is 0: route.points no
+        // longer describe the walk, and the time home comes from habitatInS.
+        pointIndex: directReturn ? 0 : index,
+        // On the way home: 'direct' (a shorter path planned on the risk map) or 'same' (the way out, walked back).
+        returnPath: headingHome ? (directReturn ? 'direct' : 'same') : null,
+        returnSavedS: directReturn ? returnSavedS : 0,
+        // The direct path (habitat first) and the position on it, for the map; null on the way out and the same path.
+        returnPoints: directReturn ? points : null,
+        returnPointIndex: directReturn ? index : null,
         nextStop: headingHome ? null : stops[stopCursor] || null,
         x: here((i) => points[i].x),
         y: here((i) => points[i].y),

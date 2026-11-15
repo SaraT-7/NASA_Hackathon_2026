@@ -99,11 +99,28 @@ export function createWalkMap(stage, grid, route) {
   });
   L.imageOverlay(fileUrl(grid, 'ortho_small'), mapBounds(grid)).addTo(map);
 
-  const points = route.points;
-  const last = points.length - 1;
+  // The path the heading follows: the route, or on the way home a shorter direct path (snapshot.returnPoints).
+  const routePoints = route.points;
+  let points = routePoints;
+  let last = points.length - 1;
   const line = points.map((p) => xyToLatLng(p.x, p.y));
-  L.polyline(line, { color: '#000', weight: 9, opacity: 0.5, interactive: false }).addTo(map);
-  L.polyline(line, { color: '#ffd9b0', weight: 5, interactive: false }).addTo(map);
+  const routeShadow = L.polyline(line, { color: '#000', weight: 9, opacity: 0.5, interactive: false }).addTo(map);
+  const routeLine = L.polyline(line, { color: '#ffd9b0', weight: 5, interactive: false }).addTo(map);
+  let directLines = [];
+
+  /** Draw the direct path home over the route (route dimmed), or remove it again (null). */
+  function showDirect(pts) {
+    for (const l of directLines) l.remove();
+    directLines = [];
+    routeShadow.setStyle({ opacity: pts ? 0.25 : 0.5 });
+    routeLine.setStyle({ opacity: pts ? 0.35 : 1 });
+    if (!pts) return;
+    const ll = pts.map((p) => xyToLatLng(p.x, p.y));
+    directLines = [
+      L.polyline(ll, { color: '#000', weight: 9, opacity: 0.5, interactive: false }).addTo(map),
+      L.polyline(ll, { color: '#4da3ff', weight: 5, interactive: false }).addTo(map),
+    ];
+  }
 
   const pins = [];
   const home = points[0];
@@ -158,10 +175,17 @@ export function createWalkMap(stage, grid, route) {
   return {
     /** @param {object} s  a walk snapshot: x, y, pointIndex, phase, nextStop */
     update(s) {
+      const want = s.returnPoints || routePoints;
+      if (want !== points) {
+        points = want;
+        last = points.length - 1;
+        showDirect(s.returnPoints || null);
+      }
       map.setView(xyToLatLng(s.x, s.y), zoom, { animate: false });
       const back = s.phase === 'returning' || s.phase === 'done';
+      const index = s.returnPoints ? s.returnPointIndex : s.pointIndex;
       if (s.phase !== 'done' && s.phase !== 'at_stop') {
-        const h = headingAt(back ? s.pointIndex : Math.max(0, s.pointIndex - 1), s.x, s.y, back ? -1 : 1);
+        const h = headingAt(back ? index : Math.max(0, index - 1), s.x, s.y, back ? -1 : 1);
         if (h != null) target = h;
       }
       heading += angleDiff(target, heading) * TURN_SMOOTHING;

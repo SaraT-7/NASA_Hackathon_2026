@@ -6,7 +6,7 @@
 // Strategy: network first, so a fresh version is used whenever the server can be reached; only if it cannot be
 // reached (airplane mode, no Wi-Fi, server off) is the stored copy used. A service worker only runs on https:// or http://localhost.
 
-const CACHE = 'marswalk-walk-v5';
+const CACHE = 'marswalk-walk-v6';
 
 // The screen's own files and the shared modules it imports.
 const SHELL = [
@@ -25,6 +25,7 @@ const SHELL = [
   '../shared/data.js',
   '../shared/route.js',
   '../shared/walk-model.js',
+  '../plan/astar.js', // the planner's path search, for a direct path home
   '../shared/vendor/leaflet/leaflet.js',
   '../shared/vendor/leaflet/leaflet.css',
 ];
@@ -38,6 +39,8 @@ async function dataFiles() {
   const files = [url(DATA_BASE + 'grid.json'), url(DATA_BASE + 'mock_route.json')];
   const grid = await (await fetch(url(DATA_BASE + 'grid.json'))).json();
   if (grid.files?.ortho_small) files.push(url(DATA_BASE + grid.files.ortho_small));
+  // Risk, slope and elevation: a direct path home is planned on the device, also offline.
+  for (const key of ['risk', 'slope', 'elevation']) if (grid.files?.[key]) files.push(url(DATA_BASE + grid.files[key]));
   if (grid.files?.stops) {
     files.push(url(DATA_BASE + grid.files.stops));
     const { stops = [] } = await (await fetch(url(DATA_BASE + grid.files.stops))).json();
