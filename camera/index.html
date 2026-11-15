@@ -10,9 +10,13 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="../">MarsWalk</a><span class="sep">/</span><span class="page">Helmet camera</span>
-    <span class="badge">EXPERIMENTAL</span>
-    <span class="topnote">Orbital maps cannot tell loose sand from firm ground. A camera on the ground can.</span>
+    <div class="topbar-title">
+      <a href="../">MarsWalk</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <h1>Helmet camera</h1>
+      <span class="badge">EXPERIMENTAL</span>
+    </div>
+    <p class="topnote">Orbital maps cannot tell loose sand from firm ground. A camera on the ground can.</p>
   </header>
 
   <main class="layout">
@@ -43,7 +47,7 @@
         <canvas id="photo"></canvas>
         <canvas id="overlay"></canvas>
         <div id="near-line" class="near-line" hidden><span>near field (about 30 m) below</span></div>
-        <div id="busy" class="busy" hidden>Looking for sand…</div>
+        <div id="busy" class="busy" hidden>Looking for sand</div>
       </div>
       <div class="legend"><span class="swatch sand"></span>Loose sand found by the model
         <span class="swatch expert"></span>Sand marked by NASA experts</div>
