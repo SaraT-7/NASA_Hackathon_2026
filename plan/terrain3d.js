@@ -557,7 +557,7 @@ export function createTerrain3D({
     }
 
     gl.viewport(0, 0, pixelW, pixelH);
-    gl.clearColor(0.09, 0.07, 0.06, 1.0);
+    gl.clearColor(0.047, 0.055, 0.059, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
 
